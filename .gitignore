@@ -1,0 +1,36 @@
+# Credenciais
+.env
+
+# Ambiente virtual
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Banco local
+*.db
+*.sqlite
+*.sqlite3
+
+# Arquivos fiscais e temporários
+data/xml/*
+!data/xml/.gitkeep
+data/pdf/*
+!data/pdf/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+*.log
+
+# Relatórios gerados
+*.xlsx
+
+# IDE / sistema
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
