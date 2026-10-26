@@ -1,21 +1,42 @@
-"""Banco local para histórico e controle de duplicidade."""
+"""Banco de dados local da automação.
+
+Vamos usar SQLite porque é simples e já vem com o Python.
+
+Ele NÃO substituirá o GestãoClick.
+Servirá apenas para nosso controle interno.
+"""
 
 import sqlite3
 
-DB_PATH = "notas.db"
-
 
 def criar_banco():
-    """Cria a estrutura inicial do banco SQLite."""
-    # TODO: definir tabela após validar quais identificadores a API fornece.
+    # Nesta etapa você vai aprender:
+    #
+    # sqlite3.connect()
+    # cursor
+    # CREATE TABLE
+    # commit()
+    # close()
+    #
+    # A tabela deverá guardar informações como:
+    # venda_id
+    # numero_nf
+    # status
+    # data_emissao
+    # caminhos dos arquivos
     pass
 
 
 def nota_ja_processada(venda_id):
-    """Verifica se uma venda já foi processada."""
+    # OBJETIVO:
+    # consultar o SQLite e responder:
+    #
+    # True  -> venda já processada
+    # False -> venda ainda não processada
     pass
 
 
 def registrar_nota(nota):
-    """Registra o resultado do processamento de uma nota."""
+    # OBJETIVO:
+    # inserir no banco o histórico da nota.
     pass

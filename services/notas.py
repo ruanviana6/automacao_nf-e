@@ -1,17 +1,22 @@
-"""Regras para preparação, emissão e consulta de NF-e."""
+"""Regras relacionadas às notas fiscais.
+
+Este arquivo NÃO fará toda a comunicação HTTP.
+A comunicação com o GestãoClick ficará em api/gestaoclick.py.
+"""
 
 
 def preparar_dados_nf(venda):
-    """Transforma os dados da venda no formato esperado pela API."""
+    # OBJETIVO:
+    # pegar os dados da venda e montar a estrutura
+    # que futuramente será enviada para a API.
     pass
 
 
-def emitir_nota(dados_nf):
-    """Solicita a emissão da NF-e."""
-    # TODO: implementar somente após confirmar o endpoint oficial.
-    pass
-
-
-def consultar_status_nota(nota_id):
-    """Consulta o status fiscal de uma nota."""
+def processar_nota(venda):
+    # FUTURAMENTE esta função vai coordenar:
+    #
+    # preparar dados
+    # → emitir
+    # → consultar status
+    # → salvar arquivos
     pass

@@ -1,9 +1,24 @@
-"""Ponto de entrada da automação de NF-e."""
+"""Arquivo principal do projeto.
+
+Pense neste arquivo como o "maestro" da automação.
+
+Ele não deve fazer todo o trabalho sozinho.
+A função dele será chamar as partes responsáveis por:
+buscar, validar, registrar, emitir e salvar.
+"""
 
 
 def main():
-    """Orquestra o fluxo principal do sistema."""
-    # TODO: integrar as etapas do projeto conforme forem implementadas.
+    # ETAPA FUTURA:
+    # 1. buscar vendas
+    # 2. percorrer cada venda
+    # 3. validar
+    # 4. verificar se já foi processada
+    # 5. emitir nota
+    # 6. salvar resultado
+
+    # Por enquanto deixamos vazio porque você vai montar
+    # esse fluxo aos poucos durante o projeto.
     pass
 
 

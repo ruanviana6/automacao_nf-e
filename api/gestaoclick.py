@@ -1,33 +1,47 @@
-"""Cliente de integração com a API do GestãoClick.
+"""Integração futura com a API do GestãoClick.
 
-Os endpoints serão implementados conforme a documentação disponível
-na conta da empresa.
+IMPORTANTE:
+A lógica da API fica isolada neste arquivo para evitar espalhar
+requests, tokens e URLs por todo o projeto.
+
+Quando chegar o momento da integração, este módulo será responsável por:
+
+- autenticar;
+- buscar vendas;
+- buscar clientes;
+- enviar dados de NF-e;
+- consultar status;
+- baixar XML/PDF.
+
+Por enquanto NÃO vamos implementar endpoints reais.
 """
 
-import os
-
-import requests
-from dotenv import load_dotenv
-
-load_dotenv()
+# FUTURAMENTE:
+# import requests
+# import os
+# from dotenv import load_dotenv
 
 
 class GestaoClickAPI:
-    """Centraliza autenticação e requisições ao GestãoClick."""
+    """Representará nossa conexão com o GestãoClick."""
 
     def __init__(self):
-        self.base_url = os.getenv("GESTAOCLICK_BASE_URL")
-        self.access_token = os.getenv("GESTAOCLICK_ACCESS_TOKEN")
-        self.secret_access = os.getenv("GESTAOCLICK_SECRET_ACCESS")
+        # Futuramente vamos carregar aqui:
+        # self.base_url
+        # self.token
+        # self.secret
+        pass
 
-    def testar_configuracao(self):
-        """Verifica se as variáveis essenciais foram configuradas."""
-        return all(
-            [
-                self.base_url,
-                self.access_token,
-                self.secret_access,
-            ]
-        )
+    def buscar_vendas(self):
+        """Buscará vendas através da API."""
+        # TODO: você implementará quando estudarmos GET + requests.
+        pass
 
-    # TODO: adicionar métodos de requisição conforme a documentação real da API.
+    def emitir_nota(self, dados):
+        """Enviará dados para emissão da NF-e."""
+        # TODO: você implementará quando soubermos o endpoint oficial.
+        pass
+
+    def consultar_nota(self, nota_id):
+        """Consultará o status de uma NF-e."""
+        pass

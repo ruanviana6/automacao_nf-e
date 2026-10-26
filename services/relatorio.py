@@ -1,7 +1,10 @@
-"""Geração do relatório quinzenal."""
+"""Relatório das notas processadas nos últimos 15 dias."""
 
 
 def gerar_relatorio(notas):
-    """Gera relatório das notas processadas no período."""
-    # TODO: adicionar pandas/openpyxl quando esta etapa for iniciada.
+    # PRIMEIRA VERSÃO:
+    # podemos gerar CSV usando biblioteca padrão.
+    #
+    # DEPOIS:
+    # pandas + openpyxl para gerar Excel.
     pass
