@@ -1,14 +1,84 @@
 """Funções relacionadas às vendas.
 
-Aqui ficará a regra de negócio.
 Este arquivo não precisa saber como a API funciona internamente.
 """
+""" Regras relacionadas aos pedidos
+Por enquanto vamos usar pedidos ficticios pra desenvolver e testar a lógica antes de conectar a API oficial
+Regras atuais para emissão da NF-e:
+1 - O cliente deve ser do Ceará(CE)
+2 - Pedidos com status  "Em separação" podem gerar NF-e.
+3 - Pedidos com status "Concretizada" podem gerar NF-e.
+4 - Pedidos com status "Em andamento" só podem gerar NF-e com autorização.
+5 - A emissão só deve ser feito seguindo essa regra, caso tenha alguma alteração nas regras, sendo necessaria a documentação.
+"""
 
-
-def buscar_vendas_pendentes():
+def buscar_pedidos_pendentes():
     # Inicialmente vamos retornar vendas fictícias.
-    # Isso permite desenvolver o programa antes da API real.
+    # Pedido 1
+    pedidos = [{
+        "numero_pedido": 1001,
+        "status": "Em separação",
+        "cliente": {"nome": "Ruan Viana",
+                    "documento": 61160263388,
+                    "uf": Ceará},
+        "produtos": [{ "descricao": "Produto A",
+                      "quantidade": 2,
+                      "valor_unitario": 50.00}]
+        "valor_total": 100.00},
+    # Pedido 2
+        {"numero_pedido": 1002,
+        "status": "Concretizada",
+        "cliente": {"nome": "Chico Jr",
+                    "documento": 1313131313,
+                    "uf": Ceará},
+        "produtos": [{ "descricao": "Produto B",
+                      "quantidade": 3,
+                      "valor_unitario": 20.00},
+                    {"descricao": "Produto C",
+                      "quantidade": 2,
+                      "valor_unitario": 40.00}]
+        "valor_total": 140.00},
+    # Pedido 3
+         {"numero_pedido": 1003,
+        "status": "Em andamento",
+        "cliente": {"nome": "Jessica Alves",
+                    "documento": 222222222222,
+                    "uf": Ceará},
+        "produtos": [{ "descricao": "Produto D",
+                      "quantidade": 3,
+                      "valor_unitario": 50.00},
+                    {"descricao": "Produto E",
+                      "quantidade": 2,
+                      "valor_unitario": 80.00}]
+        "valor_total": 310.00},
+        # Pedido 4 - Pedido para testar a regra do estado
+        {"numero_pedido": 1001,
+        "status": "Em separação",
+        "cliente": {"nome": "Elana Debora",
+                    "documento": 99999999999,
+                    "uf": Piaui},
+        "produtos": [{ "descricao": "Produto F",
+                      "quantidade": 5,
+                      "valor_unitario": 25.00}]
+        "valor_total": 125.00}
+return pedidos
+    
+def  pedido_liberado_gerar_nfe(pedido, autorizacao_em_andamento=False):
+# Verificação estado do cliente
+# Padronização do valor UF antes das comparações
+    uf_cliente = pedido["cliente"]["uf"].strip().lower()
+    if uf_cliente not in ["ce", "ceará", "ceara"]:
+        return False
+# Verificação status atual do pedido
+    status = pedido["status]..strip().lower()
+    if status in ["em separação", "concretizada"]:
+        return True
+    if status == "em andamento":
+        return autorizacao_em_andammento:
+    return False
 
-    # TODO:
-    # crie uma lista com 2 ou 3 vendas fictícias usando dicionários.
+
+
+
+
     pass
