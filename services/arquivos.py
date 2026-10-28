@@ -3,11 +3,12 @@
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from utils.data_hora import agora_utc
+from config.settings import (
+    PASTA_XML,
+    PASTA_PDF,
+    RETENCAO_ARQUIVOS_DIAS
+)
 import os
-
-# Define as pastas usadas para guardar temporariamente XML e PDF
-PASTA_XML = Path("data/xml")
-PASTA_PDF = Path("data/pdf")
 
 
 # Garante que as pastas existam antes de tentar salvar arquivos
@@ -39,7 +40,7 @@ def salvar_pdf(conteudo, nome_arquivo):
     return caminho_arquivo
 
 # Verifica se um arquivo passou do prazo de retenção definido
-def arquivo_expirado(caminho_arquivo, dias=45):
+def arquivo_expirado(caminho_arquivo, dias=RETENCAO_ARQUIVOS_DIAS):
     # Converte o caminho recebido para Path para usar os recursos de arquivo
     caminho_arquivo = Path(caminho_arquivo)
     # Se o arquivo não existir, não há nada para considerar expirado
@@ -58,7 +59,7 @@ def arquivo_expirado(caminho_arquivo, dias=45):
     return data_modificacao < limite
 
 # Percorre as pastas de XML e PDF e remove somente arquivos que passaram do prazo
-def limpar_arquivos_expirados(dias=45):
+def limpar_arquivos_expirados(dias=RETENCAO_ARQUIVOS_DIAS):
     preparar_pastas()
     # Agrupa as duas pastas para usar a mesma lógica de limpeza
     pastas = [PASTA_XML, PASTA_PDF]
