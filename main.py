@@ -5,7 +5,7 @@ from services.vendas import(
     buscar_pedidos_pendentes, pedido_liberado_gerar_nfe
 )
 from utils.data_hora import (agora_utc, formatar_horario_local)
-from database.database import (inicializar_banco, registrar_processamento)
+from database.nfe_repository import (inicializar_banco, registrar_processamento)
 
 # Solicita uma autorização somente para pedidos que ainda estão "em andamento"
 # Retorna três informações juntas: se autorizou, quem autorizou e quando autorizou
