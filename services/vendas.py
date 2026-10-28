@@ -12,15 +12,19 @@ Regras atuais para emissão da NF-e:
 5 - A emissão só deve ser feito seguindo essa regra, caso tenha alguma alteração nas regras, sendo necessaria a documentação.
 """
 
+# Retorna pedidos fictícios para testar a lógica antes da integração com a API real
 def buscar_pedidos_pendentes():
+    # A lista guarda vários pedidos e cada pedido é representado por um dicionário
     # Inicialmente vamos retornar vendas fictícias.
     # Pedido 1
     pedidos = [{
         "numero_pedido": 1001,
         "status": "Em separação",
+        # O cliente fica em um dicionário dentro do pedido
         "cliente": {"nome": "Ruan Viana",
                     "documento": 61160263388,
                     "uf": "Ceará"},
+        # Produtos ficam em uma lista porque um pedido pode ter um ou vários itens
         "produtos": [{ "descricao": "Produto A",
                       "quantidade": 2,
                       "valor_unitario": 50.00}],
@@ -62,20 +66,29 @@ def buscar_pedidos_pendentes():
                       "valor_unitario": 25.00}],
         "valor_total": 125.00}]
     
+    # Entrega a lista completa para quem chamou a função
     return pedidos
 
+# Decide se um pedido está liberado para gerar NF-e conforme UF, status e autorização
+# O parâmetro autorizacao_em_andamento começa como False para bloquear exceções por padrão
 def  pedido_liberado_gerar_nfe(pedido, autorizacao_em_andamento=False):
 # Verificação estado do cliente
 # Padronização do valor UF antes das comparações
+    # Acessa a UF dentro de cliente e padroniza o texto antes de comparar
     uf_cliente = pedido["cliente"]["uf"].strip().lower()
+    # Aceita formas diferentes de escrever Ceará e bloqueia qualquer outro estado
     if uf_cliente not in ["ce", "ceará", "ceara"]:
         return False
 # Verificação status atual do pedido
+    # Padroniza o status pelo mesmo motivo: evitar diferença de escrita na comparação
     status = pedido["status"].strip().lower()
+    # Esses dois status podem seguir normalmente sem autorização extra
     if status in ["em separação", "concretizada"]:
         return True
+    # Pedido em andamento depende diretamente da autorização recebida pelo main
     if status == "em andamento":
         return autorizacao_em_andamento
+    # Qualquer status fora das regras conhecidas é bloqueado por segurança
     return False
 
     pass
