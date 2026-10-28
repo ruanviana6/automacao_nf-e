@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
+from config.settings import FUSO_HORARIO
+
 # Define o fuso usado para mostrar datas e horários ao usuário
-FUSO_LOCAL = ZoneInfo("America/Fortaleza")
+FUSO_LOCAL = ZoneInfo(FUSO_HORARIO)
 
 # Retorna o horário atual em UTC para manter um padrão interno no sistema
 def agora_utc():
