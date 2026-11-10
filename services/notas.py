@@ -1,22 +1,34 @@
 """Regras relacionadas às notas fiscais.
 
-Este arquivo NÃO fará toda a comunicação HTTP.
-A comunicação com o GestãoClick ficará em api/gestaoclick.py.
+Este arquivo prepara e coordena dados internos.
+O formato oficial enviado ao GestãoClick será ajustado com o OpenAPI da conta.
 """
+
+from services.validacao import validar_venda
 
 
 def preparar_dados_nf(venda):
-    # OBJETIVO:
-    # pegar os dados da venda e montar a estrutura
-    # que futuramente será enviada para a API.
-    pass
+    erros = validar_venda(venda)
+
+    if erros:
+        raise ValueError(" | ".join(erros))
+
+    # Estrutura interna do projeto.
+    # Ainda não representa o payload oficial do GestãoClick.
+    return {
+        "numero_pedido": venda["numero_pedido"],
+        "cliente": venda["cliente"],
+        "produtos": venda["produtos"],
+        "valor_total": venda["valor_total"]
+    }
 
 
 def processar_nota(venda):
-    # FUTURAMENTE esta função vai coordenar:
-    #
-    # preparar dados
-    # → emitir
-    # → consultar status
-    # → salvar arquivos
-    pass
+    dados = preparar_dados_nf(venda)
+
+    # A emissão real será ligada aqui quando os endpoints e campos
+    # do OpenAPI da conta forem adicionados.
+    return {
+        "status": "pronta_para_integracao",
+        "dados": dados
+    }

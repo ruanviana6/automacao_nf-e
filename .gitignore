@@ -20,6 +20,8 @@ data/xml/*
 !data/xml/.gitkeep
 data/pdf/*
 !data/pdf/.gitkeep
+data/relatorios/*
+!data/relatorios/.gitkeep
 
 # Logs
 logs/*
@@ -28,6 +30,7 @@ logs/*
 
 # Relatórios gerados
 *.xlsx
+*.csv
 
 # IDE / sistema
 .vscode/

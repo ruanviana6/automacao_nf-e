@@ -1,47 +1,90 @@
-"""Integração futura com a API do GestãoClick.
+"""Base da integração com a API do GestãoClick.
 
-IMPORTANTE:
-A lógica da API fica isolada neste arquivo para evitar espalhar
-requests, tokens e URLs por todo o projeto.
-
-Quando chegar o momento da integração, este módulo será responsável por:
-
-- autenticar;
-- buscar vendas;
-- buscar clientes;
-- enviar dados de NF-e;
-- consultar status;
-- baixar XML/PDF.
-
-Por enquanto NÃO vamos implementar endpoints reais.
+Os endpoints específicos serão conectados usando o arquivo OpenAPI
+disponível dentro da conta do GestãoClick.
 """
 
-# FUTURAMENTE:
-# import requests
-# import os
-# from dotenv import load_dotenv
+import requests
+
+from config.settings import (
+    GESTAOCLICK_BASE_URL,
+    GESTAOCLICK_ACCESS_TOKEN,
+    GESTAOCLICK_SECRET_ACCESS,
+    GESTAOCLICK_TIMEOUT
+)
 
 
 class GestaoClickAPI:
-    """Representará nossa conexão com o GestãoClick."""
+    def __init__(
+        self,
+        base_url=None,
+        access_token=None,
+        secret_access=None
+    ):
+        self.base_url = (base_url or GESTAOCLICK_BASE_URL).rstrip("/")
+        self.access_token = access_token or GESTAOCLICK_ACCESS_TOKEN
+        self.secret_access = secret_access or GESTAOCLICK_SECRET_ACCESS
+        self.timeout = GESTAOCLICK_TIMEOUT
 
-    def __init__(self):
-        # Futuramente vamos carregar aqui:
-        # self.base_url
-        # self.token
-        # self.secret
-        pass
+        self.session = requests.Session()
+        self.session.headers.update({
+            "access-token": self.access_token,
+            "secret-access-token": self.secret_access,
+            "Accept": "application/json"
+        })
 
-    def buscar_vendas(self):
-        """Buscará vendas através da API."""
-        # TODO: você implementará quando estudarmos GET + requests.
-        pass
+    def _validar_configuracao(self):
+        if not self.base_url:
+            raise ValueError("GESTAOCLICK_BASE_URL não configurada.")
 
-    def emitir_nota(self, dados):
-        """Enviará dados para emissão da NF-e."""
-        # TODO: você implementará quando soubermos o endpoint oficial.
-        pass
+        if not self.access_token or not self.secret_access:
+            raise ValueError("Credenciais da API do GestãoClick não configuradas.")
 
-    def consultar_nota(self, nota_id):
-        """Consultará o status de uma NF-e."""
-        pass
+    def _request(self, metodo, endpoint, **kwargs):
+        self._validar_configuracao()
+
+        url = f"{self.base_url}/{endpoint.lstrip('/')}"
+
+        resposta = self.session.request(
+            metodo,
+            url,
+            timeout=self.timeout,
+            **kwargs
+        )
+
+        if resposta.status_code == 429:
+            raise RuntimeError("Limite de requisições da API atingido.")
+
+        resposta.raise_for_status()
+
+        if not resposta.content:
+            return None
+
+        return resposta.json()
+
+    def listar(self, endpoint, params=None):
+        return self._request(
+            "GET",
+            endpoint,
+            params=params
+        )
+
+    def visualizar(self, endpoint):
+        return self._request(
+            "GET",
+            endpoint
+        )
+
+    def cadastrar(self, endpoint, dados):
+        return self._request(
+            "POST",
+            endpoint,
+            json=dados
+        )
+
+    def executar_acao(self, endpoint, dados=None):
+        return self._request(
+            "POST",
+            endpoint,
+            json=dados or {}
+        )
