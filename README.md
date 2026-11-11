@@ -1,6 +1,6 @@
 # Automação NF-e
 
-Automação em Python criada para reduzir etapas manuais no processo de análise, emissão e controle de NF-e, preparada para integração com o GestãoClick.
+Automação em Python criada para reduzir etapas manuais no processo de análise, emissão e controle de NF-e, preparada para integração com o GestãoClick e com outros módulos internos.
 
 > **Status atual:** V1 funcional em modo de simulação.  
 > A estrutura completa está pronta; falta conectar os endpoints e campos da API real do GestãoClick.
@@ -42,6 +42,8 @@ Registrar histórico
   ↓
 Salvar XML/PDF
   ↓
+Registrar evento de integração
+  ↓
 Limpeza local após 45 dias
   ↓
 Relatório quinzenal
@@ -56,8 +58,9 @@ Hoje esse fluxo pode ser executado de ponta a ponta usando o provedor simulado. 
 - autorização de pedidos em andamento;
 - registro de quem autorizou e quem executou;
 - banco SQLite;
-- tabelas separadas para processamentos, notas e arquivos;
+- tabelas separadas para processamentos, notas, arquivos e eventos de integração;
 - proteção contra duplicidade;
+- proteção contra nova criação quando uma nota ficou em estado incerto após falha/timeout;
 - modo de simulação isolado do ambiente de produção;
 - geração simulada de NF-e;
 - salvamento de XML e PDF;
@@ -67,7 +70,9 @@ Hoje esse fluxo pode ser executado de ponta a ponta usando o provedor simulado. 
 - relatório CSV;
 - envio de relatório por e-mail;
 - rotina quinzenal opcional;
-- testes automatizados;
+- fila local de eventos para integração futura;
+- reenvio de eventos que falharam;
+- testes automatizados no GitHub Actions;
 - cliente HTTP preparado para o GestãoClick;
 - configurações e credenciais via `.env`.
 
@@ -83,10 +88,14 @@ automacao_nf-e/
 │   └── settings.py
 ├── database/
 │   ├── conexao.py
+│   ├── integracao_repository.py
 │   └── nfe_repository.py
+├── integrations/
+│   └── gerente_estoque.py
 ├── services/
 │   ├── arquivos.py
 │   ├── email_service.py
+│   ├── eventos_integracao.py
 │   ├── notas.py
 │   ├── relatorio.py
 │   ├── rotinas.py
@@ -99,6 +108,7 @@ automacao_nf-e/
 ├── data/
 ├── logs/
 ├── main.py
+├── INTEGRACAO_GERENTE_ESTOQUE.md
 └── SEGURANCA.md
 ```
 
@@ -164,6 +174,12 @@ Gerar e enviar relatório:
 python main.py --enviar-relatorio
 ```
 
+Reenviar eventos de integração pendentes:
+
+```bash
+python main.py --reenviar-eventos
+```
+
 ## Retenção local
 
 XML, PDF e logs permanecem localmente por **45 dias**.
@@ -180,7 +196,7 @@ Depois de configurar o e-mail no `.env`, pode ser ativado com:
 EMAIL_ENVIO_AUTOMATICO=true
 ```
 
-## Integração real — próxima etapa
+## Integração real com o GestãoClick
 
 O arquivo `api/gestaoclick.py` já possui a base HTTP e o restante do sistema espera apenas estes métodos:
 
@@ -193,11 +209,27 @@ O arquivo `api/gestaoclick.py` já possui a base HTTP e o restante do sistema es
 
 O provedor simulado implementa exatamente esse contrato. Por isso a conexão real pode ser feita sem reescrever o restante da aplicação.
 
+## Pronto para integrar ao Gerente de Estoque
+
+A automação já possui uma camada de integração separada.
+
+Quando uma NF-e é concluída, um evento é salvo no SQLite. Se o Gerente de Estoque ainda estiver desligado, nada é perdido e a emissão continua normalmente.
+
+Quando o gerente estiver pronto, basta configurar:
+
+```env
+INTEGRACAO_GERENTE_ATIVA=true
+GERENTE_ESTOQUE_WEBHOOK_URL=
+GERENTE_ESTOQUE_WEBHOOK_TOKEN=
+```
+
+O Gerente de Estoque poderá receber os eventos sem acessar o SQLite da automação e sem receber CPF/CNPJ, XML, PDF ou credenciais.
+
+Consulte `INTEGRACAO_GERENTE_ESTOQUE.md` para o contrato inicial.
+
 ## Evolução futura
 
-A automação foi organizada para futuramente compartilhar integrações e dados com outros módulos, incluindo o **Gerente de Estoque Inteligente**.
-
-Esse projeto separado poderá trabalhar com alertas de estoque baixo, cobertura, previsão de vendas, sugestão de reposição, riscos e mudanças de comportamento, sem transformar a automação de NF-e em um sistema monolítico difícil de manter.
+Esse mesmo padrão permite integrar futuramente outros serviços, como compras, expedição, relatórios ou notificações, sem colocar todas as regras dentro do mesmo arquivo ou banco.
 
 ## Segurança
 
