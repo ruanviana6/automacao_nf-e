@@ -83,3 +83,62 @@ por operações de GET, parâmetros de URL ou rotina de navegação.
 
 Este PR prepara os pontos de integração; **não habilita produção nem altera
 o aplicativo Flatter publicado**.
+
+
+## Regras manuais já implementadas no domínio (sem emissão real)
+
+O arquivo `services/regras_fiscais.py` valida duas escolhas obrigatórias e
+imutáveis por tentativa de NF-e modelo 55. A montagem de dados em
+`services/notas.py` aceita `opcoes_fiscais_manuais` e o provedor de duas
+contas se recusa a criar a nota sem ambas. O fluxo simulado antigo continua
+funcionando sem exigir entrada fiscal real.
+
+- `modalidade_frete`: 0 CIF (remetente), **1 FOB (destinatário)**,
+  2 terceiros, 3 transporte próprio remetente, 4 transporte próprio
+  destinatário, 9 sem ocorrência de transporte.
+- `tipo_contribuinte`: **9 Não contribuinte**, **2 Contribuinte isento
+  de IE**, 1 Contribuinte ICMS. Não há valor padrão em nenhuma seleção.
+- Os números são códigos fiscais do modelo NF-e (XML `modFrete` e
+  `indIEDest`), **NÃO são ainda nomes de parâmetros confirmados para
+  os endpoints da API GestãoClick**.
+- Seleção humana tem de ocorrer **antes de criar/enviar** a nota.
+  Após a criação, somente leitura do histórico; uma alteração exige novo
+  procedimento de revisão do rascunho, nunca alterar nota autorizada.
+- A tela no Gerente deverá usar dropdown/select com opção inicial vazia,
+  prévia dos dados do cliente/pedido/frete, autorização e confirmação,
+  guardar ambas as escolhas + usuário + data + número do pedido + estado
+  fiscal/versão da prévia em trilha auditável privada.
+- Conferir inscrição estadual e situação fiscal do cliente com o responsável
+  antes de emitir; **isento** e **não contribuinte** não são equivalentes.
+  Contribuinte ICMS normalmente exige IE válida; isento não deve ter IE no
+  XML correspondente, sujeito às regras vigentes. Não alterar cadastro ERP.
+- Outros campos fiscais (CFOP, NCM, CST/CSOSN, consumidor final, frete total,
+  transportadora, pagamento, certificação/loja etc.) dependem do contrato
+  oficial e validação fiscal; não inventar nem inferir.
+
+### Alerta especial de integração GestãoClick
+A documentação oficial GestãoClick linha FIS informa que a chamada de emissão
+por API pode remover o agendamento de envio automático da loja, inclusive
+quando a emissão não acontece. **Antes de habilitar POST real, verificar se
+a conta Varejo utiliza essa rotina automática**. Se utilizar, bloquear
+ativação até avaliar o impacto e a alternativa com o responsável. Isso é um
+efeito colateral operacional incompatível com a regra de não alterar rotinas
+do ERP, salvo autorização específica.
+
+### Pendências de segurança e conciliação
+- O armazenamento atual `notas_fiscais` no SQLite verifica só status
+  `criada/processando/aprovada/simulada`, enquanto o ERP distingue
+  `Em aberto, Aprovada, Reprovada, Denegada, Cancelada, Enviando, Corrigida`.
+  Reprovação não deve gerar uma segunda nota automaticamente: consultar
+  ID e reutilizar a mesma nota após correção e revisão no ERP, sem usar DELETE.
+- A emissão no GestãoClick é síncrona; timeout/criação/emissão incerta precisa
+  reconciliar por chave externa e estado consultado antes de qualquer POST.
+- O backend de automação ainda roda em SQLite local; a tela Streamlit precisa
+  de fila/serviço protegido, RLS e trilha de auditoria separada; não ligar
+  webhook de saída a URL inventada e não tratar Streamlit como trabalhador
+  permanente.
+- Nenhuma nota, credencial ou cadastro real foi acessado nesta etapa.
+
+Referência fiscal de campo: MOC NF-e, `modFrete` e `indIEDest`.
+Referência do ERP (validar novamente com o OpenAPI da conta):
+https://central.gestaoclick.com.br/hc/pt-br/articles/1874-emitir-e-cancelar-nota-fiscal-pela-api-linha-fis
