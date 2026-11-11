@@ -4,8 +4,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 
-# Carrega o arquivo .env quando ele existir.
-# Credenciais reais ficam fora do GitHub.
 load_dotenv()
 
 
@@ -55,3 +53,9 @@ SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = _inteiro_env("SMTP_PORT", 587)
 SMTP_USE_TLS = _booleano_env("SMTP_USE_TLS", True)
 EMAIL_ENVIO_AUTOMATICO = _booleano_env("EMAIL_ENVIO_AUTOMATICO", False)
+
+# Integração futura com o Gerente de Estoque
+INTEGRACAO_GERENTE_ATIVA = _booleano_env("INTEGRACAO_GERENTE_ATIVA", False)
+GERENTE_ESTOQUE_WEBHOOK_URL = os.getenv("GERENTE_ESTOQUE_WEBHOOK_URL", "").strip()
+GERENTE_ESTOQUE_WEBHOOK_TOKEN = os.getenv("GERENTE_ESTOQUE_WEBHOOK_TOKEN", "").strip()
+GERENTE_ESTOQUE_TIMEOUT = _inteiro_env("GERENTE_ESTOQUE_TIMEOUT", 10)
