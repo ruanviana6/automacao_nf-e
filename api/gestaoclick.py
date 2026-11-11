@@ -1,16 +1,15 @@
-"""Base da integração com a API real do GestãoClick.
+"""Base segura da integração com a API real do GestãoClick."""
 
-A comunicação HTTP já está pronta.
-Os métodos específicos serão ligados aos endpoints e campos do OpenAPI da conta.
-"""
+from urllib.parse import urlparse
 
 import requests
 
 from config.settings import (
-    GESTAOCLICK_BASE_URL,
     GESTAOCLICK_ACCESS_TOKEN,
-    GESTAOCLICK_SECRET_ACCESS,
-    GESTAOCLICK_TIMEOUT
+    GESTAOCLICK_BASE_URL,
+    GESTAOCLICK_CONNECT_TIMEOUT,
+    GESTAOCLICK_READ_TIMEOUT,
+    GESTAOCLICK_SECRET_ACCESS
 )
 
 
@@ -27,21 +26,44 @@ class GestaoClickAPI:
         self.base_url = (base_url or GESTAOCLICK_BASE_URL).rstrip("/")
         self.access_token = access_token or GESTAOCLICK_ACCESS_TOKEN
         self.secret_access = secret_access or GESTAOCLICK_SECRET_ACCESS
-        self.timeout = GESTAOCLICK_TIMEOUT
+        self.timeout = (
+            GESTAOCLICK_CONNECT_TIMEOUT,
+            GESTAOCLICK_READ_TIMEOUT
+        )
 
         self.session = requests.Session()
         self.session.headers.update({
             "access-token": self.access_token,
             "secret-access-token": self.secret_access,
-            "Accept": "application/json"
+            "Accept": "application/json",
+            "User-Agent": "automacao-nfe/1.0"
         })
 
     def _validar_configuracao(self):
         if not self.base_url:
             raise ValueError("GESTAOCLICK_BASE_URL não configurada.")
 
+        url = urlparse(self.base_url)
+
+        if url.scheme != "https":
+            raise ValueError(
+                "A API do GestãoClick deve usar HTTPS."
+            )
+
+        if not url.hostname:
+            raise ValueError(
+                "GESTAOCLICK_BASE_URL inválida."
+            )
+
+        if url.username or url.password:
+            raise ValueError(
+                "GESTAOCLICK_BASE_URL não pode conter credenciais."
+            )
+
         if not self.access_token or not self.secret_access:
-            raise ValueError("Credenciais da API do GestãoClick não configuradas.")
+            raise ValueError(
+                "Credenciais da API do GestãoClick não configuradas."
+            )
 
     def _request(self, metodo, endpoint, **kwargs):
         self._validar_configuracao()
@@ -51,11 +73,19 @@ class GestaoClickAPI:
             metodo,
             url,
             timeout=self.timeout,
+            allow_redirects=False,
             **kwargs
         )
 
+        if 300 <= resposta.status_code < 400:
+            raise RuntimeError(
+                "Redirecionamento HTTP inesperado na API."
+            )
+
         if resposta.status_code == 429:
-            raise RuntimeError("Limite de requisições da API atingido.")
+            raise RuntimeError(
+                "Limite de requisições da API atingido."
+            )
 
         resposta.raise_for_status()
 
@@ -65,16 +95,33 @@ class GestaoClickAPI:
         return resposta.json()
 
     def listar(self, endpoint, params=None):
-        return self._request("GET", endpoint, params=params)
+        return self._request(
+            "GET",
+            endpoint,
+            params=params
+        )
 
     def visualizar(self, endpoint):
-        return self._request("GET", endpoint)
+        return self._request(
+            "GET",
+            endpoint
+        )
 
     def cadastrar(self, endpoint, dados):
-        return self._request("POST", endpoint, json=dados)
+        # POST não recebe retry automático para reduzir risco de duplicidade.
+        return self._request(
+            "POST",
+            endpoint,
+            json=dados
+        )
 
     def executar_acao(self, endpoint, dados=None):
-        return self._request("POST", endpoint, json=dados or {})
+        # A emissão também não é repetida automaticamente em erro/timeout.
+        return self._request(
+            "POST",
+            endpoint,
+            json=dados or {}
+        )
 
     def buscar_pedidos_pendentes(self):
         raise NotImplementedError(

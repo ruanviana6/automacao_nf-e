@@ -14,6 +14,13 @@ def _inteiro_env(nome, padrao):
     return int(valor)
 
 
+def _float_env(nome, padrao):
+    valor = os.getenv(nome)
+    if not valor:
+        return padrao
+    return float(valor)
+
+
 def _booleano_env(nome, padrao=False):
     valor = os.getenv(nome)
 
@@ -38,12 +45,20 @@ PASTA_PDF = PASTA_DADOS / "pdf"
 PASTA_RELATORIOS = PASTA_DADOS / "relatorios"
 PASTA_LOGS = Path("logs")
 CAMINHO_BANCO = PASTA_DADOS / "automacao_nfe.db"
+CAMINHO_LOCK = PASTA_DADOS / "automacao_nfe.lock"
+
+# SQLite
+DB_BUSY_TIMEOUT_MS = _inteiro_env("DB_BUSY_TIMEOUT_MS", 10000)
 
 # API GestãoClick
 GESTAOCLICK_BASE_URL = os.getenv("GESTAOCLICK_BASE_URL", "").rstrip("/")
 GESTAOCLICK_ACCESS_TOKEN = os.getenv("GESTAOCLICK_ACCESS_TOKEN", "")
 GESTAOCLICK_SECRET_ACCESS = os.getenv("GESTAOCLICK_SECRET_ACCESS", "")
-GESTAOCLICK_TIMEOUT = _inteiro_env("GESTAOCLICK_TIMEOUT", 30)
+GESTAOCLICK_CONNECT_TIMEOUT = _float_env("GESTAOCLICK_CONNECT_TIMEOUT", 3.5)
+GESTAOCLICK_READ_TIMEOUT = _float_env(
+    "GESTAOCLICK_READ_TIMEOUT",
+    _float_env("GESTAOCLICK_TIMEOUT", 30.0)
+)
 
 # E-mail
 EMAIL_USUARIO = os.getenv("EMAIL_USUARIO", "")
@@ -57,5 +72,10 @@ EMAIL_ENVIO_AUTOMATICO = _booleano_env("EMAIL_ENVIO_AUTOMATICO", False)
 # Integração futura com o Gerente de Estoque
 INTEGRACAO_GERENTE_ATIVA = _booleano_env("INTEGRACAO_GERENTE_ATIVA", False)
 GERENTE_ESTOQUE_WEBHOOK_URL = os.getenv("GERENTE_ESTOQUE_WEBHOOK_URL", "").strip()
+GERENTE_ESTOQUE_WEBHOOK_SECRET = os.getenv("GERENTE_ESTOQUE_WEBHOOK_SECRET", "").strip()
 GERENTE_ESTOQUE_WEBHOOK_TOKEN = os.getenv("GERENTE_ESTOQUE_WEBHOOK_TOKEN", "").strip()
-GERENTE_ESTOQUE_TIMEOUT = _inteiro_env("GERENTE_ESTOQUE_TIMEOUT", 10)
+GERENTE_ESTOQUE_CONNECT_TIMEOUT = _float_env("GERENTE_ESTOQUE_CONNECT_TIMEOUT", 3.5)
+GERENTE_ESTOQUE_READ_TIMEOUT = _float_env(
+    "GERENTE_ESTOQUE_READ_TIMEOUT",
+    _float_env("GERENTE_ESTOQUE_TIMEOUT", 10.0)
+)
