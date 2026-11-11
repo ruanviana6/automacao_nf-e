@@ -2,6 +2,7 @@ import argparse
 
 from api.provider import obter_provedor
 from config.settings import MODO_SIMULACAO, USUARIO_EXECUCAO
+from database.integracao_repository import inicializar_integracao
 from database.nfe_repository import (
     inicializar_banco,
     marcar_arquivo_removido,
@@ -10,6 +11,10 @@ from database.nfe_repository import (
 from services.arquivos import (
     excluir_arquivo_manual,
     listar_arquivos_locais
+)
+from services.eventos_integracao import (
+    enviar_eventos_pendentes,
+    registrar_evento_nfe_processada
 )
 from services.notas import processar_nota
 from services.rotinas import (
@@ -199,11 +204,37 @@ def processar_pedidos(logger):
                 resultado["caminho_pdf"]
             )
 
+        registrar_evento_nfe_processada(
+            resultado,
+            ambiente=getattr(
+                provedor,
+                "ambiente",
+                "producao"
+            ),
+            origem=getattr(
+                provedor,
+                "origem",
+                "gestaoclick"
+            )
+        )
+
         logger.info(
             "NF-e do pedido %s processada com status %s.",
             numero_pedido,
             resultado["status"]
         )
+
+    # A integração nunca bloqueia o fluxo da NF-e.
+    # Eventos não enviados permanecem no SQLite para uma tentativa futura.
+    integracao = enviar_eventos_pendentes(
+        logger
+    )
+
+    logger.info(
+        "Integração: %s evento(s) enviado(s), %s erro(s).",
+        integracao["enviados"],
+        integracao["erros"]
+    )
 
     executar_relatorio_automatico(logger)
     logger.info("Processamento finalizado.")
@@ -239,12 +270,18 @@ def criar_parser():
         action="store_true",
         help="Gera e envia o relatório por e-mail."
     )
+    parser.add_argument(
+        "--reenviar-eventos",
+        action="store_true",
+        help="Tenta reenviar eventos pendentes para sistemas integrados."
+    )
 
     return parser
 
 
 def main():
     inicializar_banco()
+    inicializar_integracao()
     logger = configurar_logger()
     args = criar_parser().parse_args()
 
@@ -311,6 +348,19 @@ def main():
             "Relatório enviado:",
             resultado["quantidade_notas"],
             "nota(s)."
+        )
+        return
+
+    if args.reenviar_eventos:
+        resultado = enviar_eventos_pendentes(
+            logger
+        )
+        print(
+            "Integração:",
+            resultado["enviados"],
+            "evento(s) enviado(s),",
+            resultado["erros"],
+            "erro(s)."
         )
         return
 
