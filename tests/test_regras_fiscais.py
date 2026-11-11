@@ -56,4 +56,5 @@ def test_preparo_da_nota_transporta_opcoes_internas_para_provedor():
     assert dados["opcoes_fiscais_manuais"] == {
         "modalidade_frete": 1, "tipo_contribuinte": 2
     }
-    assert "opcoes_fiscais_manuais" not in preparar_dados_nf(venda)  # só demo
+    with pytest.raises(ValueError):
+        preparar_dados_nf(venda)  # DEMO também exige escolhas manuais explícitas.

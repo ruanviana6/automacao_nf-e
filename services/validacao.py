@@ -1,25 +1,35 @@
-"""Validações dos dados antes de tentar emitir uma NF-e."""
+"""Validação básica DEMO; não substitui homologação fiscal."""
+
+import math
+from decimal import Decimal
+
+
+def _numero_valido(valor):
+    """Limita números DEMO finitos antes de conversões que podem estourar."""
+    return type(valor) in (int, float) and -10**12 <= valor <= 10**12 and math.isfinite(valor)
 
 
 def validar_cliente(cliente):
+    """Recusa campos ausentes; não presume homologação de CPF/CNPJ ou tributação."""
     erros = []
 
     if not isinstance(cliente, dict):
         return ["Cliente inválido."]
 
-    if not str(cliente.get("nome", "")).strip():
+    if not isinstance(cliente.get("nome"), str) or not cliente["nome"].strip():
         erros.append("Cliente sem nome.")
 
-    if not str(cliente.get("documento", "")).strip():
+    if not isinstance(cliente.get("documento"), str) or not cliente['documento'].strip():
         erros.append("Cliente sem documento.")
 
-    if not str(cliente.get("uf", "")).strip():
+    if not isinstance(cliente.get("uf"), str) or not cliente["uf"].strip():
         erros.append("Cliente sem UF.")
 
     return erros
 
 
 def validar_produtos(produtos):
+    """Exige produtos descritivos e valores finitos, sem booleanos numéricos."""
     erros = []
 
     if not isinstance(produtos, list) or not produtos:
@@ -30,33 +40,34 @@ def validar_produtos(produtos):
             erros.append(f"Produto {indice} inválido.")
             continue
 
-        if not str(produto.get("descricao", "")).strip():
+        if not isinstance(produto.get('descricao'), str) or not produto['descricao'].strip():
             erros.append(f"Produto {indice} sem descrição.")
 
         quantidade = produto.get("quantidade")
-        if not isinstance(quantidade, (int, float)) or quantidade <= 0:
+        if not _numero_valido(quantidade) or quantidade <= 0:
             erros.append(f"Produto {indice} com quantidade inválida.")
 
         valor_unitario = produto.get("valor_unitario")
-        if not isinstance(valor_unitario, (int, float)) or valor_unitario < 0:
+        if not _numero_valido(valor_unitario) or valor_unitario < 0:
             erros.append(f"Produto {indice} com valor unitário inválido.")
 
     return erros
 
 
 def validar_valores(venda):
+    """Compara os totais DEMO com decimais, sem calcular tributos presumidos."""
     erros = []
 
     produtos = venda.get("produtos", [])
     valor_total = venda.get("valor_total")
 
-    if not isinstance(valor_total, (int, float)) or valor_total < 0:
+    if not _numero_valido(valor_total) or valor_total < 0:
         return ["Valor total da venda inválido."]
 
     if not isinstance(produtos, list):
         return ["Lista de produtos inválida."]
 
-    total_calculado = 0
+    total_calculado = Decimal(0)
 
     for produto in produtos:
         if not isinstance(produto, dict):
@@ -65,10 +76,11 @@ def validar_valores(venda):
         quantidade = produto.get("quantidade")
         valor_unitario = produto.get("valor_unitario")
 
-        if isinstance(quantidade, (int, float)) and isinstance(valor_unitario, (int, float)):
-            total_calculado += quantidade * valor_unitario
+        if not _numero_valido(quantidade) or not _numero_valido(valor_unitario):
+            return ['Item com valor ou quantidade inválida.']
+        total_calculado += Decimal(str(quantidade)) * Decimal(str(valor_unitario))
 
-    if round(total_calculado, 2) != round(valor_total, 2):
+    if round(total_calculado, 2) != round(Decimal(str(valor_total)), 2):
         erros.append(
             f"Valor total divergente: calculado {total_calculado:.2f}, informado {valor_total:.2f}."
         )
@@ -77,6 +89,7 @@ def validar_valores(venda):
 
 
 def validar_venda(venda):
+    """Reúne validações básicas, preservando erros para revisão humana."""
     erros = []
 
     if not isinstance(venda, dict):

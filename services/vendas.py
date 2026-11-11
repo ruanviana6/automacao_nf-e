@@ -7,8 +7,8 @@ def pedidos_ficticios():
             "numero_pedido": 1001,
             "status": "Em separação",
             "cliente": {
-                "nome": "Ruan Viana",
-                "documento": 61160263388,
+                "nome": "Cliente DEMO 01",
+                "documento": "IDENTIFICADOR-DEMO",
                 "uf": "Ceará"
             },
             "produtos": [
@@ -24,8 +24,8 @@ def pedidos_ficticios():
             "numero_pedido": 1002,
             "status": "Concretizada",
             "cliente": {
-                "nome": "Chico Jr",
-                "documento": 1313131313,
+                "nome": "Cliente DEMO 02",
+                "documento": "IDENTIFICADOR-DEMO",
                 "uf": "Ceará"
             },
             "produtos": [
@@ -46,8 +46,8 @@ def pedidos_ficticios():
             "numero_pedido": 1003,
             "status": "Em andamento",
             "cliente": {
-                "nome": "Jessica Alves",
-                "documento": 222222222222,
+                "nome": "Cliente DEMO 03",
+                "documento": "IDENTIFICADOR-DEMO",
                 "uf": "Ceará"
             },
             "produtos": [
@@ -68,8 +68,8 @@ def pedidos_ficticios():
             "numero_pedido": 1004,
             "status": "Em separação",
             "cliente": {
-                "nome": "Elana Debora",
-                "documento": 99999999999,
+                "nome": "Cliente DEMO 04",
+                "documento": "IDENTIFICADOR-DEMO",
                 "uf": "Piaui"
             },
             "produtos": [
@@ -92,7 +92,12 @@ def buscar_pedidos_pendentes(provedor=None):
 
 
 def pedido_liberado_gerar_nfe(pedido, autorizacao_em_andamento=False):
-    uf_cliente = pedido["cliente"]["uf"].strip().lower()
+    if not isinstance(pedido, dict) or not isinstance(pedido.get("cliente"), dict) or type(autorizacao_em_andamento) is not bool:
+        return False
+    uf = pedido["cliente"].get("uf")
+    if not isinstance(uf, str) or not isinstance(pedido.get("status"), str):
+        return False
+    uf_cliente = uf.strip().lower()
 
     if uf_cliente not in ["ce", "ceará", "ceara"]:
         return False

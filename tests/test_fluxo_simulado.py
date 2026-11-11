@@ -43,17 +43,19 @@ def test_fluxo_simulado_salva_nota_e_impede_duplicidade(tmp_path, monkeypatch):
     resultado = processar_nota(
         pedido,
         provedor,
-        "TESTE"
+        "TESTE", opcoes_fiscais_manuais={"modalidade_frete": 1, "tipo_contribuinte": 9}
     )
 
     assert resultado["status"] == "simulada"
-    assert resultado["caminho_xml"].exists()
-    assert resultado["caminho_pdf"].exists()
+    assert resultado["caminho_xml"] is None
+    assert not (tmp_path / "xml").exists()
+    assert resultado["caminho_pdf"] is None
+    assert not (tmp_path / "pdf").exists()
 
     repeticao = processar_nota(
         pedido,
         provedor,
-        "TESTE"
+        "TESTE", opcoes_fiscais_manuais={"modalidade_frete": 1, "tipo_contribuinte": 9}
     )
 
     assert repeticao["status"] == "duplicada"
@@ -78,7 +80,7 @@ def test_id_criado_fica_salvo_quando_emissao_falha(tmp_path, monkeypatch):
         processar_nota(
             pedido,
             provedor,
-            "TESTE"
+            "TESTE", opcoes_fiscais_manuais={"modalidade_frete": 1, "tipo_contribuinte": 9}
         )
 
     nota = buscar_nota_ativa_para_pedido(
@@ -93,7 +95,7 @@ def test_id_criado_fica_salvo_quando_emissao_falha(tmp_path, monkeypatch):
     nova_tentativa = processar_nota(
         pedido,
         provedor,
-        "TESTE"
+        "TESTE", opcoes_fiscais_manuais={"modalidade_frete": 1, "tipo_contribuinte": 9}
     )
 
     assert nova_tentativa["status"] == "pendente_consulta"

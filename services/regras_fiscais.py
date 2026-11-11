@@ -7,23 +7,14 @@ real da conta e as regras fiscais aplicáveis. Nenhuma função envia HTTP.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
+from pathlib import Path
 from typing import Mapping
 
 
-MODALIDADES_FRETE = {
-    0: "CIF - contratação por conta do remetente",
-    1: "FOB - contratação por conta do destinatário",
-    2: "Contratação por conta de terceiros",
-    3: "Transporte próprio por conta do remetente",
-    4: "Transporte próprio por conta do destinatário",
-    9: "Sem ocorrência de transporte",
-}
-
-TIPOS_CONTRIBUINTE = {
-    1: "Contribuinte do ICMS",
-    2: "Contribuinte isento de inscrição estadual",
-    9: "Não contribuinte do ICMS",
-}
+CONTRATO = json.loads((Path(__file__).resolve().parents[1] / 'contratos/fiscal_demo_v1.json').read_text())
+MODALIDADES_FRETE = {int(k): v for k, v in CONTRATO['modalidades_frete'].items()}
+TIPOS_CONTRIBUINTE = {int(k): v for k, v in CONTRATO['tipos_contribuinte'].items()}
 
 
 @dataclass(frozen=True)

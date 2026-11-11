@@ -63,12 +63,8 @@ def test_api_bloqueia_redirect_e_usa_timeout(monkeypatch):
 
     with pytest.raises(
         RuntimeError,
-        match="Redirecionamento"
+        match="Cliente legado"
     ):
         api.visualizar("/teste")
 
-    assert isinstance(
-        capturado["timeout"],
-        tuple
-    )
-    assert capturado["allow_redirects"] is False
+    assert capturado == {}  # O cliente legado não pode abrir nenhuma requisição.

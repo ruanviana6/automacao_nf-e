@@ -70,6 +70,8 @@ def inicializar_banco():
         "TEXT NOT NULL DEFAULT 'producao'"
     )
 
+    _adicionar_coluna_se_necessario(cursor, "notas_fiscais", "solicitacao_referencia", "TEXT")
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS arquivos_nfe(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,12 +141,6 @@ def buscar_nota_ativa_para_pedido(numero_pedido, ambiente="producao"):
         FROM notas_fiscais
         WHERE numero_pedido = ?
           AND ambiente = ?
-          AND LOWER(status_nfe) IN (
-              'criada',
-              'processando',
-              'aprovada',
-              'simulada'
-          )
         ORDER BY id DESC
         LIMIT 1
     """, (numero_pedido, ambiente))
@@ -225,9 +221,10 @@ def registrar_nota(nota):
             data_emissao,
             origem,
             ambiente,
-            criado_em
+            criado_em,
+            solicitacao_referencia
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         nota["numero_pedido"],
         nota.get("id_externo"),
@@ -238,7 +235,8 @@ def registrar_nota(nota):
         data_emissao,
         nota.get("origem", "gestaoclick"),
         nota.get("ambiente", "producao"),
-        criado_em
+        criado_em,
+        nota.get("solicitacao_referencia")
     ))
 
     nota_id = cursor.lastrowid
@@ -416,3 +414,12 @@ def definir_estado(chave, valor):
 
     conexao.commit()
     conexao.close()
+
+
+def buscar_legado_sem_escopo(numero_pedido, ambiente):
+    """História antiga sem conta atribuída exige conferência, independentemente do status."""
+    conexao = conectar_banco()
+    try:
+        return conexao.execute("SELECT id,id_externo FROM notas_fiscais WHERE numero_pedido=? AND ambiente=? AND solicitacao_referencia IS NULL LIMIT 1", (numero_pedido, ambiente)).fetchone()
+    finally:
+        conexao.close()

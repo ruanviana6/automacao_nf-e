@@ -66,33 +66,8 @@ class GestaoClickAPI:
             )
 
     def _request(self, metodo, endpoint, **kwargs):
-        self._validar_configuracao()
-        url = f"{self.base_url}/{endpoint.lstrip('/')}"
-
-        resposta = self.session.request(
-            metodo,
-            url,
-            timeout=self.timeout,
-            allow_redirects=False,
-            **kwargs
-        )
-
-        if 300 <= resposta.status_code < 400:
-            raise RuntimeError(
-                "Redirecionamento HTTP inesperado na API."
-            )
-
-        if resposta.status_code == 429:
-            raise RuntimeError(
-                "Limite de requisições da API atingido."
-            )
-
-        resposta.raise_for_status()
-
-        if not resposta.content:
-            return None
-
-        return resposta.json()
+        """Descontinua o cliente genérico: nenhuma rota HTTP real é liberada."""
+        raise RuntimeError('Cliente legado desativado. Use os contratos Atacado/Varejo e o executor fiscal isolado.')
 
     def listar(self, endpoint, params=None):
         return self._request(

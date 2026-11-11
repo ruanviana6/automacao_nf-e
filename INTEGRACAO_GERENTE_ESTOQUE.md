@@ -1,93 +1,35 @@
-# Integração com o Gerente de Estoque
+# Integração atual com o Gerente Flatter
 
-A automação de NF-e foi preparada para funcionar de forma independente e, no futuro, enviar eventos para o Gerente de Estoque sem compartilhar diretamente o SQLite.
+A comunicação operacional usa exclusivamente o Supabase existente. O Streamlit
+não recebe webhooks nem compartilha SQLite. A fila HTTP/HMAC da V1 permanece
+histórica, desativada e fora do caminho operacional.
 
-## Como funciona
+O funcionário entra no Gerente, seleciona o pedido DEMO e ambos os códigos
+manuais, confere a prévia e confirma a solicitação. RPCs usam seu JWT e verificam
+sessão, conta ativa, organização e permissões no banco. Em andamento exige
+aprovação identificada, também revalidada antes da execução.
 
-Quando uma NF-e é concluída, a automação registra um evento local:
+O Gerente chama a função `fiscal-demo` enviando somente UUID da solicitação e
+ação `execute_demo` ou `reconcile_demo`. A Edge Function verifica Auth, solicita
+uma concessão no banco com o JWT individual e conclui somente essa concessão
+pela RPC restrita do executor. A chave administrativa nativa da plataforma
+nunca chega ao Streamlit ou navegador e não é usada para consultas comuns.
 
-```text
-NF-e concluída
-      ↓
-eventos_integracao (SQLite)
-      ↓
-evento pendente
-      ↓
-webhook do Gerente de Estoque
-```
+Solicitações, resultados e eventos ficam no PostgreSQL. Uma restrição única
+inclui organização, origem, ID estável do pedido, destino e ambiente. Somente
+uma concessão pode processar a solicitação. Concessão vencida ou resultado
+incerto exigem conferência; atualização de página não repete criação.
 
-Se o Gerente de Estoque estiver fora do ar, a NF-e não é bloqueada. O evento permanece salvo e pode ser reenviado depois.
+O contrato compartilhado tem SHA256
+`400ab19bf26309a7f24798da21dc09e4170acab57af8460a508247625e72f5b9`.
+O catálogo SQL no Gerente e os testes Python usam os mesmos cenários fictícios.
+Nenhum código XML é tratado como nome de parâmetro da API.
 
-## Evento inicial
+A referência `services/notas.py` aceita somente provedor de simulação e serve
+aos testes. Não fornece autorização de funcionário em produção. Não há segundo
+motor produtivo. A implementação real dependerá do checklist OpenAPI, inclusive
+journal durável separado para criar/emitir e reconciliação por ID externo.
 
-Tipo:
-
-```text
-nfe.processada
-```
-
-Exemplo:
-
-```json
-{
-  "evento_id": "uuid",
-  "tipo": "nfe.processada",
-  "versao": 1,
-  "ocorrido_em": "data/hora UTC",
-  "origem": "automacao_nfe",
-  "dados": {
-    "nota_id": 12,
-    "numero_pedido": 4589,
-    "numero_nfe": "12345",
-    "status_nfe": "aprovada",
-    "ambiente": "producao",
-    "origem_nfe": "gestaoclick"
-  }
-}
-```
-
-O evento não envia CPF/CNPJ, XML, PDF, tokens ou senhas.
-
-## Ativação futura
-
-No `.env`:
-
-```env
-INTEGRACAO_GERENTE_ATIVA=true
-GERENTE_ESTOQUE_WEBHOOK_URL=https://endereco-do-gerente/eventos
-GERENTE_ESTOQUE_WEBHOOK_TOKEN=segredo-compartilhado
-```
-
-Enquanto o gerente estiver sendo desenvolvido separadamente, mantenha:
-
-```env
-INTEGRACAO_GERENTE_ATIVA=false
-```
-
-## Reenvio
-
-Eventos que falharam permanecem no banco.
-
-Para tentar novamente:
-
-```bash
-python main.py --reenviar-eventos
-```
-
-## Por que não compartilhar o SQLite
-
-A automação pode continuar em uma máquina local enquanto o Gerente de Estoque pode estar hospedado em outro ambiente.
-
-Compartilhar o arquivo SQLite entre aplicações ou computadores aumentaria risco de concorrência e corrupção. A integração por eventos mantém os projetos independentes.
-
-## Evolução
-
-O mesmo padrão permite acrescentar novos eventos futuramente, por exemplo:
-
-- `pedido.processado`;
-- `nfe.rejeitada`;
-- `estoque.baixo`;
-- `estoque.reposicao_sugerida`;
-- `expedicao.iniciada`.
-
-O Gerente de Estoque continuará responsável pelas próprias regras de estoque e previsão. A automação de NF-e apenas publica fatos relevantes.
+Migrações, implantação Edge, limites gratuitos, segurança e evidências ficam
+em `docs/FISCAL_DEMO.md` no Gerente. A ativação real deve ocorrer em alteração
+própria, revisada nos dois projetos.

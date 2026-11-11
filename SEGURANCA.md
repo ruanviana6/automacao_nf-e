@@ -1,58 +1,18 @@
-# Segurança da Automação NF-e
+# Segurança fiscal Flatter
 
-Esta revisão registra as proteções já adotadas e os pontos que precisam ser conferidos antes de ativar a API real.
+- Somente DEMO, sem comunicação com GestãoClick e sem credenciais reais.
+- Frete e contribuinte manuais, confirmação consciente e aprovação Auth.
+- Permissões no backend e banco; nenhuma autorização por nome digitado.
+- RLS, isolamento por organização, unicidade e locks no PostgreSQL operacional.
+- Sessões e permissões revalidadas antes da concessão e do resultado.
+- Journal antes da operação; timeout não libera criação e não recebe retry.
+- Resultado e identidade vêm do servidor, sem aprovação forjada pelo navegador.
+- Ausência de download/salvamento automático de XML/PDF e limpeza histórica.
+- Cliente genérico legado desativado; referência Python recusa provedor real.
+- CI com dados fictícios, bloqueio de rede e auditoria de dependências.
+- Nenhum token ou documento em Git, logs, URLs ou mensagens de erro.
 
-## Proteções já aplicadas
-
-- credenciais ficam no arquivo `.env`, fora do Git;
-- tokens, senhas, XML e PDF não são escritos nos logs;
-- logs são estruturados em JSON e limitam entrada não confiável;
-- SQL usa parâmetros;
-- SQLite usa foreign keys, busy timeout e synchronous FULL;
-- duas execuções simultâneas na mesma máquina são bloqueadas;
-- o modo WAL não é habilitado na V1;
-- HTTPS é obrigatório para GestãoClick e webhook;
-- verificação TLS do Requests permanece habilitada;
-- redirects HTTP são bloqueados nas integrações;
-- conexão e leitura possuem timeouts separados;
-- operações POST de criação/emissão não recebem retry automático;
-- uma nota criada é persistida antes da emissão;
-- emissão duplicada é bloqueada;
-- integração com o Gerente usa HMAC-SHA256, timestamp e event ID;
-- eventos são idempotentes e ficam persistidos para reenvio;
-- falha no Gerente de Estoque não bloqueia NF-e;
-- GitHub Actions usa permissões mínimas;
-- actions do CI são fixadas por SHA;
-- dependências Python são fixadas por versão;
-- pip-audit verifica vulnerabilidades;
-- Dependabot monitora dependências e GitHub Actions;
-- XML/PDF e logs possuem retenção local de 45 dias.
-
-## Antes de produção
-
-1. Baixar e validar o OpenAPI da própria conta do GestãoClick.
-2. Criar uma chave exclusiva da automação, com validade definida.
-3. Usar usuário/loja com menor privilégio possível.
-4. Aplicar restrição de IP, horário e permissões no GestãoClick quando aplicável.
-5. Confirmar paginação, limites por segundo/dia e todos os status oficiais.
-6. Manter `MODO_SIMULACAO=true` até concluir testes reais controlados.
-7. Configurar `USUARIO_EXECUCAO`.
-8. Aplicar permissões NTFS nas pastas da aplicação e no `.env`.
-9. Usar criptografia de disco quando disponível.
-10. Definir backup do SQLite e testar restauração.
-11. Confirmar política interna de armazenamento de XML/PDF e envio de e-mail.
-12. Testar timeout entre criação e emissão, rejeição e respostas 401/403/429/5xx.
-13. Testar primeiro com poucos pedidos e conferir manualmente no GestãoClick.
-14. Não automatizar cancelamento/reemissão até mapear os estados oficiais.
-15. No Gerente de Estoque, validar HMAC com comparação constante, janela de timestamp e deduplicação por event ID.
-
-## Limites atuais
-
-- SQLite continua sendo banco local e não deve ser compartilhado entre máquinas;
-- o arquivo SQLite não possui criptografia própria;
-- a identificação de usuário ainda é simples;
-- a integração real depende do OpenAPI da conta;
-- cancelamento de NF-e não faz parte da V1;
-- segurança do endpoint do Gerente também dependerá da infraestrutura escolhida para ele.
-
-Consulte também `ARQUITETURA_SEGURANCA.md`.
+A futura ativação exige OpenAPI das duas contas, mapeamento fiscal e avaliação
+do efeito sobre a emissão automática da loja. Não configure APIs em produção
+sem concluir [o checklist](docs/CHECKLIST_ATIVACAO_API_GESTAOCLICK.md).
+Os registros de segurança da V1 em `docs/historico/` não são instruções vigentes.
