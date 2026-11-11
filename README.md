@@ -118,6 +118,12 @@ automacao_nf-e/
 pip install -r requirements.txt
 ```
 
+Para desenvolvimento e testes:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
 Copie o modelo de configuração:
 
 ```bash
@@ -220,6 +226,7 @@ Quando o gerente estiver pronto, basta configurar:
 ```env
 INTEGRACAO_GERENTE_ATIVA=true
 GERENTE_ESTOQUE_WEBHOOK_URL=
+GERENTE_ESTOQUE_WEBHOOK_SECRET=
 GERENTE_ESTOQUE_WEBHOOK_TOKEN=
 ```
 
@@ -233,6 +240,6 @@ Esse mesmo padrão permite integrar futuramente outros serviços, como compras, 
 
 ## Segurança
 
-Antes de ativar a API real, consulte `SEGURANCA.md`.
+Antes de ativar a API real, consulte `SEGURANCA.md` e `ARQUITETURA_SEGURANCA.md`.
 
 Credenciais reais nunca devem ser enviadas para o GitHub.
