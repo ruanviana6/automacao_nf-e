@@ -4,41 +4,55 @@ Esta revisão registra as proteções já adotadas e os pontos que precisam ser 
 
 ## Proteções já aplicadas
 
-- credenciais ficam no arquivo `.env`, que não é enviado ao GitHub;
-- tokens não são escritos nos logs;
-- consultas SQL usam parâmetros em vez de montar SQL com dados externos;
-- arquivos fiscais locais ficam fora do Git;
-- exclusão manual é limitada às pastas de XML e PDF;
-- emissão duplicada é bloqueada quando já existe nota concluída para o pedido no mesmo ambiente;
-- uma nota criada fica registrada antes da etapa de emissão, evitando nova criação automática após timeout;
-- o modo de simulação é separado do ambiente de produção;
-- erros ficam registrados em log;
-- não existe repetição automática de chamadas POST de emissão;
-- XML/PDF e logs possuem retenção local de 45 dias;
-- a integração com outros módulos usa eventos e não expõe diretamente o SQLite;
-- eventos enviados ao Gerente de Estoque não incluem CPF/CNPJ, XML, PDF, tokens ou senhas;
-- falhas na integração externa não bloqueiam o processamento da NF-e;
-- eventos não entregues ficam persistidos para reenvio posterior.
+- credenciais ficam no arquivo `.env`, fora do Git;
+- tokens, senhas, XML e PDF não são escritos nos logs;
+- logs são estruturados em JSON e limitam entrada não confiável;
+- SQL usa parâmetros;
+- SQLite usa foreign keys, busy timeout e synchronous FULL;
+- duas execuções simultâneas na mesma máquina são bloqueadas;
+- o modo WAL não é habilitado na V1;
+- HTTPS é obrigatório para GestãoClick e webhook;
+- verificação TLS do Requests permanece habilitada;
+- redirects HTTP são bloqueados nas integrações;
+- conexão e leitura possuem timeouts separados;
+- operações POST de criação/emissão não recebem retry automático;
+- uma nota criada é persistida antes da emissão;
+- emissão duplicada é bloqueada;
+- integração com o Gerente usa HMAC-SHA256, timestamp e event ID;
+- eventos são idempotentes e ficam persistidos para reenvio;
+- falha no Gerente de Estoque não bloqueia NF-e;
+- GitHub Actions usa permissões mínimas;
+- actions do CI são fixadas por SHA;
+- dependências Python são fixadas por versão;
+- pip-audit verifica vulnerabilidades;
+- Dependabot monitora dependências e GitHub Actions;
+- XML/PDF e logs possuem retenção local de 45 dias.
 
 ## Antes de produção
 
-1. Confirmar no OpenAPI os endpoints, campos e status oficiais do GestãoClick.
-2. Usar credenciais específicas para a integração e aplicar o menor nível de acesso possível.
-3. Definir `MODO_SIMULACAO=false` somente depois dos testes da API.
-4. Configurar `USUARIO_EXECUCAO` para identificar quem ou qual conta executa a automação.
-5. Validar se CPF/CNPJ, XML e PDF podem permanecer no computador utilizado e quais permissões de pasta serão aplicadas.
-6. Criar rotina de backup do histórico SQLite ou migrar para banco central quando o uso deixar de ser individual/local.
-7. Confirmar política interna para envio de relatório por e-mail e seus destinatários.
-8. Fazer primeiro teste real com poucos pedidos e conferir manualmente o resultado no GestãoClick.
-9. Nunca registrar tokens, senhas, conteúdo completo de documentos fiscais ou outros segredos em logs.
-10. Revisar o comportamento de cancelamento, rejeição e reemissão antes de automatizar esses cenários.
-11. Ao integrar o Gerente de Estoque, usar HTTPS no webhook e um token compartilhado forte.
-12. Manter `INTEGRACAO_GERENTE_ATIVA=false` enquanto o endpoint do gerente ainda não estiver pronto.
+1. Baixar e validar o OpenAPI da própria conta do GestãoClick.
+2. Criar uma chave exclusiva da automação, com validade definida.
+3. Usar usuário/loja com menor privilégio possível.
+4. Aplicar restrição de IP, horário e permissões no GestãoClick quando aplicável.
+5. Confirmar paginação, limites por segundo/dia e todos os status oficiais.
+6. Manter `MODO_SIMULACAO=true` até concluir testes reais controlados.
+7. Configurar `USUARIO_EXECUCAO`.
+8. Aplicar permissões NTFS nas pastas da aplicação e no `.env`.
+9. Usar criptografia de disco quando disponível.
+10. Definir backup do SQLite e testar restauração.
+11. Confirmar política interna de armazenamento de XML/PDF e envio de e-mail.
+12. Testar timeout entre criação e emissão, rejeição e respostas 401/403/429/5xx.
+13. Testar primeiro com poucos pedidos e conferir manualmente no GestãoClick.
+14. Não automatizar cancelamento/reemissão até mapear os estados oficiais.
+15. No Gerente de Estoque, validar HMAC com comparação constante, janela de timestamp e deduplicação por event ID.
 
 ## Limites atuais
 
-- o banco SQLite local não possui criptografia própria;
-- a identificação de usuário é simples e ainda não é um sistema completo de autenticação;
-- a integração real com o GestãoClick ainda depende do OpenAPI da conta;
+- SQLite continua sendo banco local e não deve ser compartilhado entre máquinas;
+- o arquivo SQLite não possui criptografia própria;
+- a identificação de usuário ainda é simples;
+- a integração real depende do OpenAPI da conta;
 - cancelamento de NF-e não faz parte da V1;
-- o webhook futuro do Gerente de Estoque ainda dependerá da autenticação e hospedagem escolhidas para esse projeto.
+- segurança do endpoint do Gerente também dependerá da infraestrutura escolhida para ele.
+
+Consulte também `ARQUITETURA_SEGURANCA.md`.
