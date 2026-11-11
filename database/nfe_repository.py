@@ -4,13 +4,24 @@ from database.conexao import conectar_banco
 from utils.data_hora import agora_utc
 
 
-# Reúne somente as operações de banco relacionadas ao processamento de NF-e.
-# Futuramente estoque e outros módulos podem ter seus próprios arquivos de acesso ao banco.
+def _colunas_tabela(cursor, nome_tabela):
+    cursor.execute(f"PRAGMA table_info({nome_tabela})")
+    return {linha["name"] for linha in cursor.fetchall()}
+
+
+def _adicionar_coluna_se_necessario(cursor, tabela, coluna, definicao):
+    colunas = _colunas_tabela(cursor, tabela)
+
+    if coluna not in colunas:
+        cursor.execute(
+            f"ALTER TABLE {tabela} ADD COLUMN {coluna} {definicao}"
+        )
+
+
 def inicializar_banco():
     conexao = conectar_banco()
     cursor = conexao.cursor()
 
-    # Histórico das análises realizadas antes da emissão.
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS processamentos_nfe(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,21 +35,41 @@ def inicializar_banco():
         )
     """)
 
-    # Guarda somente NF-e realmente registradas pelo sistema.
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS notas_fiscais(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             numero_pedido INTEGER NOT NULL,
+            id_externo TEXT,
             numero_nfe TEXT,
             chave_nfe TEXT UNIQUE,
             status_nfe TEXT NOT NULL,
             usuario_gerador TEXT,
             data_emissao TEXT,
+            origem TEXT NOT NULL DEFAULT 'gestaoclick',
+            ambiente TEXT NOT NULL DEFAULT 'producao',
             criado_em TEXT NOT NULL
         )
     """)
 
-    # XML e PDF ficam separados da nota para permitir controlar remoção local.
+    _adicionar_coluna_se_necessario(
+        cursor,
+        "notas_fiscais",
+        "id_externo",
+        "TEXT"
+    )
+    _adicionar_coluna_se_necessario(
+        cursor,
+        "notas_fiscais",
+        "origem",
+        "TEXT NOT NULL DEFAULT 'gestaoclick'"
+    )
+    _adicionar_coluna_se_necessario(
+        cursor,
+        "notas_fiscais",
+        "ambiente",
+        "TEXT NOT NULL DEFAULT 'producao'"
+    )
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS arquivos_nfe(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -49,6 +80,14 @@ def inicializar_banco():
             removido_em TEXT,
             criado_em TEXT NOT NULL,
             FOREIGN KEY(nota_id) REFERENCES notas_fiscais(id)
+        )
+    """)
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS estado_sistema(
+            chave TEXT PRIMARY KEY,
+            valor TEXT,
+            atualizado_em TEXT NOT NULL
         )
     """)
 
@@ -80,18 +119,17 @@ def pedido_ja_processado(numero_pedido):
     return resultado is not None
 
 
-# A proteção real contra duplicidade olha para uma nota aprovada,
-# e não apenas para o fato de o pedido já ter sido analisado.
-def nota_ja_emitida_para_pedido(numero_pedido):
+def nota_ja_emitida_para_pedido(numero_pedido, ambiente="producao"):
     conexao = conectar_banco()
     cursor = conexao.cursor()
     cursor.execute("""
         SELECT id
         FROM notas_fiscais
         WHERE numero_pedido = ?
-          AND LOWER(status_nfe) = 'aprovada'
+          AND ambiente = ?
+          AND LOWER(status_nfe) IN ('aprovada', 'simulada')
         LIMIT 1
-    """, (numero_pedido,))
+    """, (numero_pedido, ambiente))
     resultado = cursor.fetchone()
     conexao.close()
     return resultado is not None
@@ -145,21 +183,27 @@ def registrar_nota(nota):
     cursor.execute("""
         INSERT INTO notas_fiscais(
             numero_pedido,
+            id_externo,
             numero_nfe,
             chave_nfe,
             status_nfe,
             usuario_gerador,
             data_emissao,
+            origem,
+            ambiente,
             criado_em
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         nota["numero_pedido"],
+        nota.get("id_externo"),
         nota.get("numero_nfe"),
         nota.get("chave_nfe"),
         nota["status_nfe"],
         nota.get("usuario_gerador"),
         data_emissao,
+        nota.get("origem", "gestaoclick"),
+        nota.get("ambiente", "producao"),
         criado_em
     ))
 
@@ -179,13 +223,21 @@ def registrar_arquivo_nfe(nota_id, tipo, caminho):
     cursor = conexao.cursor()
 
     cursor.execute("""
-        INSERT OR IGNORE INTO arquivos_nfe(
+        INSERT INTO arquivos_nfe(
             nota_id,
             tipo,
             caminho,
+            removido,
+            removido_em,
             criado_em
         )
-        VALUES (?, ?, ?, ?)
+        VALUES (?, ?, ?, 0, NULL, ?)
+        ON CONFLICT(caminho) DO UPDATE SET
+            nota_id = excluded.nota_id,
+            tipo = excluded.tipo,
+            removido = 0,
+            removido_em = NULL,
+            criado_em = excluded.criado_em
     """, (
         nota_id,
         tipo,
@@ -246,11 +298,14 @@ def listar_notas_recentes(dias=15):
         SELECT
             id,
             numero_pedido,
+            id_externo,
             numero_nfe,
             chave_nfe,
             status_nfe,
             usuario_gerador,
             data_emissao,
+            origem,
+            ambiente,
             criado_em
         FROM notas_fiscais
         WHERE criado_em >= ?
@@ -260,3 +315,42 @@ def listar_notas_recentes(dias=15):
     notas = cursor.fetchall()
     conexao.close()
     return notas
+
+
+def obter_estado(chave):
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        SELECT valor
+        FROM estado_sistema
+        WHERE chave = ?
+    """, (chave,))
+
+    resultado = cursor.fetchone()
+    conexao.close()
+
+    if resultado is None:
+        return None
+
+    return resultado["valor"]
+
+
+def definir_estado(chave, valor):
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        INSERT INTO estado_sistema(chave, valor, atualizado_em)
+        VALUES (?, ?, ?)
+        ON CONFLICT(chave) DO UPDATE SET
+            valor = excluded.valor,
+            atualizado_em = excluded.atualizado_em
+    """, (
+        chave,
+        str(valor),
+        agora_utc().isoformat(timespec="seconds")
+    ))
+
+    conexao.commit()
+    conexao.close()

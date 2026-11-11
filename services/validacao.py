@@ -26,6 +26,10 @@ def validar_produtos(produtos):
         return ["Pedido sem produtos."]
 
     for indice, produto in enumerate(produtos, start=1):
+        if not isinstance(produto, dict):
+            erros.append(f"Produto {indice} inválido.")
+            continue
+
         if not str(produto.get("descricao", "")).strip():
             erros.append(f"Produto {indice} sem descrição.")
 
@@ -49,16 +53,21 @@ def validar_valores(venda):
     if not isinstance(valor_total, (int, float)) or valor_total < 0:
         return ["Valor total da venda inválido."]
 
+    if not isinstance(produtos, list):
+        return ["Lista de produtos inválida."]
+
     total_calculado = 0
 
     for produto in produtos:
+        if not isinstance(produto, dict):
+            continue
+
         quantidade = produto.get("quantidade")
         valor_unitario = produto.get("valor_unitario")
 
         if isinstance(quantidade, (int, float)) and isinstance(valor_unitario, (int, float)):
             total_calculado += quantidade * valor_unitario
 
-    # Arredonda para duas casas para comparar valores monetários desta primeira versão.
     if round(total_calculado, 2) != round(valor_total, 2):
         erros.append(
             f"Valor total divergente: calculado {total_calculado:.2f}, informado {valor_total:.2f}."

@@ -14,18 +14,22 @@ from config.settings import (
 )
 
 
+def email_configurado():
+    return all([
+        EMAIL_USUARIO,
+        EMAIL_SENHA,
+        EMAIL_DESTINO,
+        SMTP_HOST
+    ])
+
+
 def enviar_relatorio(caminho_relatorio):
     caminho_relatorio = Path(caminho_relatorio)
 
     if not caminho_relatorio.exists():
         raise FileNotFoundError("Relatório não encontrado.")
 
-    if not all([
-        EMAIL_USUARIO,
-        EMAIL_SENHA,
-        EMAIL_DESTINO,
-        SMTP_HOST
-    ]):
+    if not email_configurado():
         raise ValueError("Configurações de e-mail incompletas.")
 
     mensagem = EmailMessage()
@@ -45,14 +49,11 @@ def enviar_relatorio(caminho_relatorio):
         filename=caminho_relatorio.name
     )
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as servidor:
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=30) as servidor:
         if SMTP_USE_TLS:
             servidor.starttls()
 
-        servidor.login(
-            EMAIL_USUARIO,
-            EMAIL_SENHA
-        )
+        servidor.login(EMAIL_USUARIO, EMAIL_SENHA)
         servidor.send_message(mensagem)
 
     return True
