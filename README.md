@@ -1,262 +1,206 @@
 # Automação NF-e
 
-Projeto em Python para automatizar e organizar etapas do processo de emissão, acompanhamento e controle de NF-e, com preparação para futura integração com a API do GestãoClick.
+Automação em Python criada para reduzir etapas manuais no processo de análise, emissão e controle de NF-e, preparada para integração com o GestãoClick.
 
-O projeto nasceu a partir de um processo real: pedidos precisam ser analisados antes da emissão da nota, algumas situações exigem autorização, os arquivos precisam ser organizados e o histórico deve continuar disponível para consulta.
+> **Status atual:** V1 funcional em modo de simulação.  
+> A estrutura completa está pronta; falta conectar os endpoints e campos da API real do GestãoClick.
 
-> Status: **em desenvolvimento**.  
-> A lógica principal está sendo construída e testada com dados fictícios antes da conexão com o ambiente real.
+## O problema
 
----
+Antes de uma NF-e ser emitida, o pedido precisa respeitar regras operacionais. Além disso, é necessário manter histórico, identificar autorizações, organizar XML/PDF, evitar emissão duplicada e gerar relatórios.
 
-## Objetivo
+A proposta é automatizar esse fluxo sem substituir o GestãoClick. O ERP continua sendo a fonte principal das notas e dos dados; esta aplicação funciona como uma camada de automação e controle.
 
-A primeira versão do sistema tem como objetivo:
+## Regras atuais
 
-- analisar pedidos antes da emissão da NF-e;
-- aplicar regras de negócio automaticamente;
-- registrar autorizações e histórico de processamento;
-- salvar XML e PDF temporariamente;
-- remover arquivos locais antigos de forma automática ou manual;
-- manter informações importantes no banco de dados;
-- preparar a base para integração com o GestãoClick;
-- futuramente gerar relatórios e notificações por e-mail.
+- somente clientes do Ceará seguem neste fluxo;
+- **Em separação** pode gerar NF-e;
+- **Concretizada** pode gerar NF-e;
+- **Em andamento** exige autorização;
+- a autorização registra pessoa e horário;
+- pedidos com dados inválidos são bloqueados;
+- uma nota já concluída para o pedido impede nova emissão automática no mesmo ambiente.
 
-A proposta não é substituir o GestãoClick. O sistema funciona como uma camada de automação e controle em torno dos processos que hoje exigem trabalho manual.
-
----
-
-## Regras atuais de emissão
-
-Neste momento, o sistema considera as seguintes regras:
-
-- apenas pedidos de clientes do Ceará seguem para este fluxo de NF-e;
-- pedidos com status **Em separação** podem ser liberados;
-- pedidos com status **Concretizada** podem ser liberados;
-- pedidos com status **Em andamento** precisam de autorização;
-- a autorização registra quem autorizou e quando isso aconteceu;
-- situações fora das regras conhecidas são bloqueadas.
-
-Essas regras estão separadas da futura integração com a API, facilitando alterações sem precisar refazer o sistema inteiro.
-
----
-
-## Fluxo atual
+## Fluxo da V1
 
 ```text
 Pedido
   ↓
-Identificação do cliente e status
+Validação dos dados
   ↓
-Validação das regras
+Regra de UF e status
   ↓
 Autorização, quando necessária
   ↓
-Liberado ou bloqueado
+Proteção contra duplicidade
   ↓
-Registro do processamento
+Criar nota
   ↓
-SQLite
-```
-
-Na evolução do projeto, o fluxo deve chegar a:
-
-```text
-GestãoClick
-  ↓
-Buscar pedido
-  ↓
-Validar regras
-  ↓
-Verificar emissão anterior
-  ↓
-Gerar NF-e
-  ↓
-Consultar resultado
-  ↓
-Salvar XML/PDF localmente
+Emitir
   ↓
 Registrar histórico
+  ↓
+Salvar XML/PDF
   ↓
 Limpeza local após 45 dias
   ↓
 Relatório quinzenal
-  ↓
-E-mail
 ```
 
----
+Hoje esse fluxo pode ser executado de ponta a ponta usando o provedor simulado. O mesmo contrato será ligado ao GestãoClick real.
 
-## O que já funciona
+## O que já está pronto
 
-Até o momento, o projeto já possui:
-
-- pedidos fictícios para desenvolvimento e testes;
-- validação por estado do cliente;
-- validação por status do pedido;
-- autorização manual para pedidos em andamento;
-- identificação de quem autorizou;
-- registro de data e hora da autorização;
-- uso de horário UTC internamente e horário local na exibição;
-- banco SQLite para histórico dos processamentos;
-- consulta dos registros salvos;
-- criação automática das pastas de XML e PDF;
+- regras de negócio dos pedidos;
+- validação de cliente, produtos e valores;
+- autorização de pedidos em andamento;
+- registro de quem autorizou e quem executou;
+- banco SQLite;
+- tabelas separadas para processamentos, notas e arquivos;
+- proteção contra duplicidade;
+- modo de simulação isolado do ambiente de produção;
+- geração simulada de NF-e;
 - salvamento de XML e PDF;
-- identificação de arquivos expirados;
-- limpeza automática de arquivos após **45 dias**;
-- exclusão manual de arquivos locais;
-- proteção para impedir que a exclusão manual atinja arquivos fora das pastas controladas;
-- configurações centralizadas;
-- separação entre conexão com o banco e operações relacionadas à NF-e.
+- retenção automática de 45 dias;
+- exclusão manual segura;
+- logs com retenção de 45 dias;
+- relatório CSV;
+- envio de relatório por e-mail;
+- rotina quinzenal opcional;
+- testes automatizados;
+- cliente HTTP preparado para o GestãoClick;
+- configurações e credenciais via `.env`.
 
----
-
-## Armazenamento dos arquivos
-
-Os XMLs e PDFs serão mantidos localmente por **45 dias**.
-
-Após esse período:
-
-```text
-Arquivo local
-  ↓
-Limpeza automática
-  ↓
-Arquivo removido do computador
-```
-
-Essa remoção é somente local.
-
-Ela **não cancela nem exclui a NF-e armazenada no GestãoClick**.
-
-Também existe uma opção de exclusão manual para arquivos locais quando necessário.
-
----
-
-## Organização do projeto
-
-A estrutura foi separada por responsabilidade para permitir que o sistema cresça sem concentrar tudo em um único arquivo.
+## Estrutura
 
 ```text
 automacao_nf-e/
-│
 ├── api/
-│   └── integração futura com o GestãoClick
-│
+│   ├── gestaoclick.py
+│   ├── mock_gestaoclick.py
+│   └── provider.py
 ├── config/
-│   └── configurações compartilhadas
-│
+│   └── settings.py
 ├── database/
-│   ├── conexão com o banco
-│   └── operações relacionadas à NF-e
-│
+│   ├── conexao.py
+│   └── nfe_repository.py
 ├── services/
-│   ├── pedidos e regras de negócio
-│   ├── arquivos XML/PDF
-│   ├── notas
-│   ├── relatórios
-│   └── e-mail
-│
+│   ├── arquivos.py
+│   ├── email_service.py
+│   ├── notas.py
+│   ├── relatorio.py
+│   ├── rotinas.py
+│   ├── validacao.py
+│   └── vendas.py
 ├── utils/
-│   ├── data e hora
-│   └── logs
-│
+│   ├── data_hora.py
+│   └── logger.py
+├── tests/
 ├── data/
-│   ├── xml/
-│   └── pdf/
-│
 ├── logs/
-│
-└── main.py
+├── main.py
+└── SEGURANCA.md
 ```
 
----
+## Instalação
 
-## Tecnologias utilizadas
+```bash
+pip install -r requirements.txt
+```
 
-O projeto utiliza principalmente:
+Copie o modelo de configuração:
 
-- **Python** para a automação e regras de negócio;
-- **SQLite** para histórico e controle local;
-- **Pathlib** para gerenciamento de arquivos e pastas;
-- **Datetime / ZoneInfo** para datas, horários e fuso;
-- **Requests** para a futura comunicação com APIs.
+```bash
+cp .env.example .env
+```
 
-Outras bibliotecas serão adicionadas conforme a necessidade real do projeto.
+Enquanto a API real não estiver configurada:
 
----
+```env
+MODO_SIMULACAO=true
+```
 
-## Próximas etapas
+## Executar
 
-As próximas evoluções previstas são:
+Fluxo completo:
 
-1. integrar os caminhos dos XMLs e PDFs ao banco;
-2. implementar logs com retenção de 45 dias;
-3. melhorar o controle de duplicidade de NF-e;
-4. implementar a camada de emissão de notas;
-5. conectar o sistema à API oficial do GestãoClick;
-6. substituir os pedidos fictícios por dados reais;
-7. registrar quem efetivamente gerou cada NF-e;
-8. criar relatório quinzenal;
-9. automatizar o envio por e-mail;
-10. ampliar testes e tratamento de erros;
-11. realizar uma revisão específica de segurança antes do uso em produção.
+```bash
+python main.py
+```
 
----
+Executar testes:
 
-## Visão de evolução
+```bash
+pytest
+```
 
-Este projeto começa pela automação de NF-e, mas foi estruturado para poder fazer parte de uma solução operacional maior no futuro.
+Listar XML/PDF locais:
 
-Uma das possíveis evoluções é a integração com um **Gerente de Estoque Inteligente**, desenvolvido separadamente, capaz de utilizar dados de vendas e estoque para oferecer informações como:
+```bash
+python main.py --listar-arquivos
+```
 
-- produtos com estoque baixo;
-- risco de ruptura;
-- excesso de estoque;
-- previsão de vendas;
-- cobertura em dias;
-- sugestões de reposição;
-- quanto comprar e quando comprar;
-- mudanças no comportamento de venda;
-- alertas e apoio à tomada de decisão;
-- futuramente, apoio simples à expedição.
+Forçar limpeza:
 
-A ideia é que cada módulo possa evoluir separadamente e, quando fizer sentido, compartilhar a mesma base de integrações e dados.
+```bash
+python main.py --limpar
+```
 
----
+Excluir um arquivo local específico:
 
-## Desenvolvimento e aprendizado
+```bash
+python main.py --excluir-arquivo data/xml/nome_do_arquivo.xml
+```
 
-Além de resolver um problema real, este projeto também faz parte de um processo de aprendizado prático.
+Gerar relatório:
 
-Durante o desenvolvimento são trabalhados conceitos como:
+```bash
+python main.py --relatorio
+```
 
-- lógica de programação;
-- funções;
-- módulos e imports;
-- organização de projetos;
-- regras de negócio;
-- APIs;
-- JSON;
-- banco de dados;
-- arquivos;
-- datas e horários;
-- tratamento de erros;
-- logs;
-- testes;
-- segurança;
-- escalabilidade e manutenção de código.
+Gerar e enviar relatório:
 
-A construção está sendo feita por etapas: primeiro a lógica é entendida e testada com dados fictícios, depois é integrada ao ambiente real.
+```bash
+python main.py --enviar-relatorio
+```
 
----
+## Retenção local
 
-## Observação
+XML, PDF e logs permanecem localmente por **45 dias**.
 
-A integração real com o GestãoClick ainda será implementada e validada com a documentação oficial da API.
+A remoção local não cancela nem apaga a NF-e no GestãoClick.
 
-Antes de qualquer uso em produção, o projeto ainda passará por revisão de segurança, credenciais, permissões, dados sensíveis, prevenção de duplicidade e tratamento de falhas.
+## Relatório quinzenal
 
----
+O envio automático fica desativado por padrão.
 
-Consulte também o arquivo `GUIA_DESENVOLVIMENTO.md` para acompanhar a sequência de construção do projeto.
+Depois de configurar o e-mail no `.env`, pode ser ativado com:
+
+```env
+EMAIL_ENVIO_AUTOMATICO=true
+```
+
+## Integração real — próxima etapa
+
+O arquivo `api/gestaoclick.py` já possui a base HTTP e o restante do sistema espera apenas estes métodos:
+
+- buscar pedidos pendentes;
+- criar nota;
+- emitir nota;
+- consultar nota;
+- baixar XML;
+- baixar PDF.
+
+O provedor simulado implementa exatamente esse contrato. Por isso a conexão real pode ser feita sem reescrever o restante da aplicação.
+
+## Evolução futura
+
+A automação foi organizada para futuramente compartilhar integrações e dados com outros módulos, incluindo o **Gerente de Estoque Inteligente**.
+
+Esse projeto separado poderá trabalhar com alertas de estoque baixo, cobertura, previsão de vendas, sugestão de reposição, riscos e mudanças de comportamento, sem transformar a automação de NF-e em um sistema monolítico difícil de manter.
+
+## Segurança
+
+Antes de ativar a API real, consulte `SEGURANCA.md`.
+
+Credenciais reais nunca devem ser enviadas para o GitHub.
