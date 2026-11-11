@@ -8,23 +8,29 @@ from database.nfe_repository import (
 )
 from services.arquivos import salvar_pdf, salvar_xml
 from services.validacao import validar_venda
+from services.regras_fiscais import validar_escolhas_manuais
 
 
-def preparar_dados_nf(venda):
+def preparar_dados_nf(venda, opcoes_fiscais_manuais=None):
     erros = validar_venda(venda)
 
     if erros:
         raise ValueError(" | ".join(erros))
 
-    return {
+    dados = {
         "numero_pedido": venda["numero_pedido"],
         "cliente": venda["cliente"],
         "produtos": venda["produtos"],
         "valor_total": venda["valor_total"]
     }
+    if opcoes_fiscais_manuais is not None:
+        dados["opcoes_fiscais_manuais"] = validar_escolhas_manuais(
+            opcoes_fiscais_manuais
+        ).para_registro_interno()
+    return dados
 
 
-def processar_nota(venda, provedor, usuario_gerador="SISTEMA"):
+def processar_nota(venda, provedor, usuario_gerador="SISTEMA", *, opcoes_fiscais_manuais=None):
     numero_pedido = venda["numero_pedido"]
     ambiente = getattr(provedor, "ambiente", "producao")
 
@@ -54,7 +60,7 @@ def processar_nota(venda, provedor, usuario_gerador="SISTEMA"):
             "id_externo": nota_existente["id_externo"]
         }
 
-    dados = preparar_dados_nf(venda)
+    dados = preparar_dados_nf(venda, opcoes_fiscais_manuais)
 
     criada = provedor.criar_nota(dados)
     id_externo = criada["id_externo"]
