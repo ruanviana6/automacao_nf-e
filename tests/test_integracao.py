@@ -1,3 +1,5 @@
+import hashlib
+import hmac
 import json
 
 import database.conexao as conexao
@@ -69,7 +71,7 @@ def test_integracao_desativada_mantem_evento_pendente(
     assert len(listar_eventos_pendentes()) == 1
 
 
-def test_webhook_recebe_envelope_sem_dados_sensiveis(
+def test_webhook_usa_https_hmac_e_nao_envia_dados_sensiveis(
     tmp_path,
     monkeypatch
 ):
@@ -91,14 +93,23 @@ def test_webhook_recebe_envelope_sem_dados_sensiveis(
     capturado = {}
 
     class Resposta:
+        status_code = 200
+
         def raise_for_status(self):
             return None
 
-    def post_fake(url, json, headers, timeout):
+    def post_fake(
+        url,
+        data,
+        headers,
+        timeout,
+        allow_redirects
+    ):
         capturado["url"] = url
-        capturado["json"] = json
+        capturado["data"] = data
         capturado["headers"] = headers
         capturado["timeout"] = timeout
+        capturado["allow_redirects"] = allow_redirects
         return Resposta()
 
     monkeypatch.setattr(
@@ -112,6 +123,11 @@ def test_webhook_recebe_envelope_sem_dados_sensiveis(
         "https://gerente.exemplo/eventos"
     )
     monkeypatch.setattr(
+        gerente,
+        "GERENTE_ESTOQUE_WEBHOOK_SECRET",
+        "segredo-teste"
+    )
+    monkeypatch.setattr(
         gerente.requests,
         "post",
         post_fake
@@ -121,9 +137,58 @@ def test_webhook_recebe_envelope_sem_dados_sensiveis(
         evento
     ) is True
 
-    dados = capturado["json"]["dados"]
+    corpo = capturado["data"]
+    envelope = json.loads(
+        corpo.decode("utf-8")
+    )
+    dados = envelope["dados"]
 
     assert dados["numero_pedido"] == 1001
     assert "documento" not in json.dumps(dados).lower()
     assert "xml" not in dados
     assert "pdf" not in dados
+    assert capturado["allow_redirects"] is False
+
+    timestamp = capturado["headers"]["X-Webhook-Timestamp"]
+    evento_id = capturado["headers"]["X-Webhook-Id"]
+
+    mensagem = (
+        f"{timestamp}.{evento_id}.".encode("utf-8")
+        + corpo
+    )
+
+    assinatura_esperada = (
+        "sha256="
+        + hmac.new(
+            b"segredo-teste",
+            mensagem,
+            hashlib.sha256
+        ).hexdigest()
+    )
+
+    assert hmac.compare_digest(
+        capturado["headers"]["X-Webhook-Signature"],
+        assinatura_esperada
+    )
+
+
+def test_webhook_http_nao_e_considerado_configurado(
+    monkeypatch
+):
+    monkeypatch.setattr(
+        gerente,
+        "INTEGRACAO_GERENTE_ATIVA",
+        True
+    )
+    monkeypatch.setattr(
+        gerente,
+        "GERENTE_ESTOQUE_WEBHOOK_URL",
+        "http://gerente.exemplo/eventos"
+    )
+    monkeypatch.setattr(
+        gerente,
+        "GERENTE_ESTOQUE_WEBHOOK_SECRET",
+        "segredo"
+    )
+
+    assert gerente.integracao_configurada() is False

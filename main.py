@@ -29,6 +29,10 @@ from services.vendas import (
     pedido_liberado_gerar_nfe
 )
 from utils.data_hora import agora_utc, formatar_horario_local
+from utils.execucao import (
+    ExecucaoJaAtiva,
+    bloqueio_execucao
+)
 from utils.logger import configurar_logger
 
 
@@ -224,8 +228,6 @@ def processar_pedidos(logger):
             resultado["status"]
         )
 
-    # A integração nunca bloqueia o fluxo da NF-e.
-    # Eventos não enviados permanecem no SQLite para uma tentativa futura.
     integracao = enviar_eventos_pendentes(
         logger
     )
@@ -279,11 +281,10 @@ def criar_parser():
     return parser
 
 
-def main():
+def executar(args):
     inicializar_banco()
     inicializar_integracao()
     logger = configurar_logger()
-    args = criar_parser().parse_args()
 
     limpeza = executar_limpeza()
     logger.info(
@@ -300,18 +301,18 @@ def main():
             len(limpeza["logs"]),
             "log(s) removido(s)."
         )
-        return
+        return 0
 
     if args.listar_arquivos:
         arquivos = listar_arquivos_locais()
 
         if not arquivos:
             print("Nenhum XML/PDF armazenado localmente.")
-            return
+            return 0
 
         for arquivo in arquivos:
             print(arquivo)
-        return
+        return 0
 
     if args.excluir_arquivo:
         removido = excluir_arquivo_manual(
@@ -329,7 +330,7 @@ def main():
             print(
                 "Arquivo não encontrado ou exclusão não permitida."
             )
-        return
+        return 0
 
     if args.relatorio:
         resultado = gerar_relatorio_periodo()
@@ -340,7 +341,7 @@ def main():
             resultado["quantidade_notas"],
             "nota(s)."
         )
-        return
+        return 0
 
     if args.enviar_relatorio:
         resultado = enviar_relatorio_periodo()
@@ -349,7 +350,7 @@ def main():
             resultado["quantidade_notas"],
             "nota(s)."
         )
-        return
+        return 0
 
     if args.reenviar_eventos:
         resultado = enviar_eventos_pendentes(
@@ -362,10 +363,22 @@ def main():
             resultado["erros"],
             "erro(s)."
         )
-        return
+        return 0
 
     processar_pedidos(logger)
+    return 0
+
+
+def main():
+    args = criar_parser().parse_args()
+
+    try:
+        with bloqueio_execucao():
+            return executar(args)
+    except ExecucaoJaAtiva as erro:
+        print(str(erro))
+        return 2
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
