@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from urllib.parse import urlsplit
 
 from config import settings
+from services.regras_fiscais import validar_escolhas_manuais
 
 
 class IntegracaoFiscalPendente(RuntimeError):
@@ -101,6 +102,7 @@ class EmissorVarejo:
 
     def criar_nota(self, dados):
         self._exigir_habilitacao()
+        validar_escolhas_manuais(dados.get("opcoes_fiscais_manuais") if isinstance(dados, dict) else None)
         raise IntegracaoFiscalPendente(
             "Criação da NF-e no Varejo ainda depende do contrato fiscal real, "
             "da checagem de duplicidade NO ERP e da aprovação explícita das regras."
@@ -142,7 +144,12 @@ class ProvedorDuasContas:
         return self._leitor.buscar_pedidos_pendentes()
 
     def criar_nota(self, dados):
-        return self._emissor.criar_nota(dados)
+        # Nenhuma criação é roteada sem a escolha humana dos dois campos.
+        if not isinstance(dados, dict):
+            raise ValueError("Dados da NF-e inválidos.")
+        opcoes = validar_escolhas_manuais(dados.get("opcoes_fiscais_manuais"))
+        preparados = {**dados, "opcoes_fiscais_manuais": opcoes.para_registro_interno()}
+        return self._emissor.criar_nota(preparados)
 
     def emitir_nota(self, id_externo):
         return self._emissor.emitir_nota(id_externo)
