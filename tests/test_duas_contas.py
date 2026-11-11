@@ -54,7 +54,7 @@ def test_varejo_rejeita_criacao_e_emissao_reais_sem_contrato(monkeypatch):
     # requisição fiscal pode ser enviada por este adaptador.
     monkeypatch.setattr(mod.settings, "NFE_EMISSAO_REAL_HABILITADA", True)
     with pytest.raises(IntegracaoFiscalPendente, match="contrato"):
-        emissor.criar_nota({"numero_pedido": 123})
+        emissor.criar_nota({"numero_pedido": 123, "opcoes_fiscais_manuais": {"modalidade_frete": 1, "tipo_contribuinte": 9}})
     with pytest.raises(IntegracaoFiscalPendente, match="endpoint"):
         emissor.emitir_nota("NF-123")
 
@@ -69,6 +69,7 @@ def test_provedor_usa_atacado_para_pedidos_e_varejo_para_nfe():
 
     class Varejo:
         def criar_nota(self, dados):
+            assert dados["opcoes_fiscais_manuais"] == {"modalidade_frete": 1, "tipo_contribuinte": 9}
             chamadas.append(("varejo", "criar", dados["numero_pedido"]))
             return {"id_externo": "N-1"}
 
@@ -90,7 +91,7 @@ def test_provedor_usa_atacado_para_pedidos_e_varejo_para_nfe():
 
     provedor = ProvedorDuasContas(leitor=Atacado(), emissor=Varejo())
     assert provedor.buscar_pedidos_pendentes()[0]["numero_pedido"] == 123
-    assert provedor.criar_nota({"numero_pedido": 123})["id_externo"] == "N-1"
+    assert provedor.criar_nota({"numero_pedido": 123, "opcoes_fiscais_manuais": {"modalidade_frete": 1, "tipo_contribuinte": 9}})["id_externo"] == "N-1"
     assert provedor.emitir_nota("N-1")["status_nfe"] == "simulada"
     provedor.consultar_nota("N-1")
     provedor.baixar_xml("N-1")
