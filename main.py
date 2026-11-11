@@ -65,7 +65,9 @@ def processar_pedidos(logger):
 
     for pedido in pedidos:
         numero_pedido = pedido["numero_pedido"]
-        status = str(pedido.get("status", "")).strip().lower()
+        status = str(
+            pedido.get("status", "")
+        ).strip().lower()
 
         print("\n------------------")
         print("Pedido:", numero_pedido)
@@ -125,10 +127,15 @@ def processar_pedidos(logger):
         print("Pedido liberado para gerar NF-e.")
 
         if usuario_autorizador:
-            print("Autorizado por:", usuario_autorizador)
+            print(
+                "Autorizado por:",
+                usuario_autorizador
+            )
             print(
                 "Data/hora:",
-                formatar_horario_local(data_hora_autorizacao)
+                formatar_horario_local(
+                    data_hora_autorizacao
+                )
             )
 
         try:
@@ -142,27 +149,55 @@ def processar_pedidos(logger):
                 "Falha ao processar NF-e do pedido %s.",
                 numero_pedido
             )
-            print("Falha ao processar a NF-e. Consulte o log.")
+            print(
+                "Falha ao processar a NF-e. Consulte o log."
+            )
             continue
 
         if resultado["status"] == "duplicada":
-            print("NF-e já registrada para este pedido. Emissão ignorada.")
+            print(
+                "NF-e já registrada para este pedido. Emissão ignorada."
+            )
             logger.warning(
                 "Pedido %s ignorado para evitar duplicidade.",
                 numero_pedido
             )
             continue
 
-        print("NF-e processada com status:", resultado["status"])
+        if resultado["status"] == "pendente_consulta":
+            print(
+                "Já existe uma NF-e criada para este pedido, "
+                "mas o resultado final precisa ser consultado antes de nova emissão."
+            )
+            logger.warning(
+                "Pedido %s possui NF-e pendente de consulta (ID externo: %s).",
+                numero_pedido,
+                resultado.get("id_externo")
+            )
+            continue
+
+        print(
+            "NF-e processada com status:",
+            resultado["status"]
+        )
 
         if resultado.get("numero_nfe"):
-            print("Número:", resultado["numero_nfe"])
+            print(
+                "Número:",
+                resultado["numero_nfe"]
+            )
 
         if resultado.get("caminho_xml"):
-            print("XML:", resultado["caminho_xml"])
+            print(
+                "XML:",
+                resultado["caminho_xml"]
+            )
 
         if resultado.get("caminho_pdf"):
-            print("PDF:", resultado["caminho_pdf"])
+            print(
+                "PDF:",
+                resultado["caminho_pdf"]
+            )
 
         logger.info(
             "NF-e do pedido %s processada com status %s.",
@@ -213,7 +248,6 @@ def main():
     logger = configurar_logger()
     args = criar_parser().parse_args()
 
-    # A limpeza automática ocorre em toda inicialização.
     limpeza = executar_limpeza()
     logger.info(
         "Limpeza automática: %s arquivo(s) e %s log(s) removido(s).",
@@ -243,13 +277,21 @@ def main():
         return
 
     if args.excluir_arquivo:
-        removido = excluir_arquivo_manual(args.excluir_arquivo)
+        removido = excluir_arquivo_manual(
+            args.excluir_arquivo
+        )
 
         if removido:
-            marcar_arquivo_removido(args.excluir_arquivo)
-            print("Arquivo local excluído com sucesso.")
+            marcar_arquivo_removido(
+                args.excluir_arquivo
+            )
+            print(
+                "Arquivo local excluído com sucesso."
+            )
         else:
-            print("Arquivo não encontrado ou exclusão não permitida.")
+            print(
+                "Arquivo não encontrado ou exclusão não permitida."
+            )
         return
 
     if args.relatorio:

@@ -119,20 +119,54 @@ def pedido_ja_processado(numero_pedido):
     return resultado is not None
 
 
-def nota_ja_emitida_para_pedido(numero_pedido, ambiente="producao"):
+def buscar_nota_ativa_para_pedido(numero_pedido, ambiente="producao"):
     conexao = conectar_banco()
     cursor = conexao.cursor()
+
     cursor.execute("""
-        SELECT id
+        SELECT
+            id,
+            numero_pedido,
+            id_externo,
+            numero_nfe,
+            chave_nfe,
+            status_nfe,
+            usuario_gerador,
+            data_emissao,
+            origem,
+            ambiente,
+            criado_em
         FROM notas_fiscais
         WHERE numero_pedido = ?
           AND ambiente = ?
-          AND LOWER(status_nfe) IN ('aprovada', 'simulada')
+          AND LOWER(status_nfe) IN (
+              'criada',
+              'processando',
+              'aprovada',
+              'simulada'
+          )
+        ORDER BY id DESC
         LIMIT 1
     """, (numero_pedido, ambiente))
+
     resultado = cursor.fetchone()
     conexao.close()
-    return resultado is not None
+    return resultado
+
+
+def nota_ja_emitida_para_pedido(numero_pedido, ambiente="producao"):
+    nota = buscar_nota_ativa_para_pedido(
+        numero_pedido,
+        ambiente
+    )
+
+    if nota is None:
+        return False
+
+    return str(nota["status_nfe"]).lower() in (
+        "aprovada",
+        "simulada"
+    )
 
 
 def registrar_processamento(registro):
@@ -211,6 +245,34 @@ def registrar_nota(nota):
     conexao.commit()
     conexao.close()
     return nota_id
+
+
+def atualizar_nota(nota_id, dados):
+    conexao = conectar_banco()
+    cursor = conexao.cursor()
+
+    data_emissao = dados.get("data_emissao")
+
+    if hasattr(data_emissao, "isoformat"):
+        data_emissao = data_emissao.isoformat(timespec="seconds")
+
+    cursor.execute("""
+        UPDATE notas_fiscais
+        SET numero_nfe = COALESCE(?, numero_nfe),
+            chave_nfe = COALESCE(?, chave_nfe),
+            status_nfe = COALESCE(?, status_nfe),
+            data_emissao = COALESCE(?, data_emissao)
+        WHERE id = ?
+    """, (
+        dados.get("numero_nfe"),
+        dados.get("chave_nfe"),
+        dados.get("status_nfe"),
+        data_emissao,
+        nota_id
+    ))
+
+    conexao.commit()
+    conexao.close()
 
 
 def registrar_arquivo_nfe(nota_id, tipo, caminho):
