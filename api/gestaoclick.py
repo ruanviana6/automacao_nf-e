@@ -1,7 +1,7 @@
-"""Base da integração com a API do GestãoClick.
+"""Base da integração com a API real do GestãoClick.
 
-Os endpoints específicos serão conectados usando o arquivo OpenAPI
-disponível dentro da conta do GestãoClick.
+A comunicação HTTP já está pronta.
+Os métodos específicos serão ligados aos endpoints e campos do OpenAPI da conta.
 """
 
 import requests
@@ -15,6 +15,9 @@ from config.settings import (
 
 
 class GestaoClickAPI:
+    origem = "gestaoclick"
+    ambiente = "producao"
+
     def __init__(
         self,
         base_url=None,
@@ -42,7 +45,6 @@ class GestaoClickAPI:
 
     def _request(self, metodo, endpoint, **kwargs):
         self._validar_configuracao()
-
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
         resposta = self.session.request(
@@ -63,28 +65,43 @@ class GestaoClickAPI:
         return resposta.json()
 
     def listar(self, endpoint, params=None):
-        return self._request(
-            "GET",
-            endpoint,
-            params=params
-        )
+        return self._request("GET", endpoint, params=params)
 
     def visualizar(self, endpoint):
-        return self._request(
-            "GET",
-            endpoint
-        )
+        return self._request("GET", endpoint)
 
     def cadastrar(self, endpoint, dados):
-        return self._request(
-            "POST",
-            endpoint,
-            json=dados
-        )
+        return self._request("POST", endpoint, json=dados)
 
     def executar_acao(self, endpoint, dados=None):
-        return self._request(
-            "POST",
-            endpoint,
-            json=dados or {}
+        return self._request("POST", endpoint, json=dados or {})
+
+    def buscar_pedidos_pendentes(self):
+        raise NotImplementedError(
+            "Integração de pedidos aguardando os endpoints do OpenAPI do GestãoClick."
+        )
+
+    def criar_nota(self, dados):
+        raise NotImplementedError(
+            "Criação da NF-e aguardando o endpoint oficial do OpenAPI."
+        )
+
+    def emitir_nota(self, id_externo):
+        raise NotImplementedError(
+            "Emissão da NF-e aguardando o endpoint oficial do OpenAPI."
+        )
+
+    def consultar_nota(self, id_externo):
+        raise NotImplementedError(
+            "Consulta da NF-e aguardando o endpoint oficial do OpenAPI."
+        )
+
+    def baixar_xml(self, id_externo):
+        raise NotImplementedError(
+            "Download do XML aguardando o endpoint oficial do OpenAPI."
+        )
+
+    def baixar_pdf(self, id_externo):
+        raise NotImplementedError(
+            "Download do PDF aguardando o endpoint oficial do OpenAPI."
         )

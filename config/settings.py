@@ -16,11 +16,22 @@ def _inteiro_env(nome, padrao):
     return int(valor)
 
 
+def _booleano_env(nome, padrao=False):
+    valor = os.getenv(nome)
+
+    if valor is None:
+        return padrao
+
+    return valor.strip().lower() in ("1", "true", "sim", "s", "yes")
+
+
 # Configurações gerais
 RETENCAO_ARQUIVOS_DIAS = _inteiro_env("RETENCAO_ARQUIVOS_DIAS", 45)
 RETENCAO_LOGS_DIAS = _inteiro_env("RETENCAO_LOGS_DIAS", 45)
 RELATORIO_DIAS = _inteiro_env("RELATORIO_DIAS", 15)
 FUSO_HORARIO = os.getenv("FUSO_HORARIO", "America/Fortaleza")
+MODO_SIMULACAO = _booleano_env("MODO_SIMULACAO", True)
+USUARIO_EXECUCAO = os.getenv("USUARIO_EXECUCAO", "").strip()
 
 # Caminhos usados pela aplicação
 PASTA_DADOS = Path("data")
@@ -42,4 +53,5 @@ EMAIL_SENHA = os.getenv("EMAIL_SENHA", "")
 EMAIL_DESTINO = os.getenv("EMAIL_DESTINO", "")
 SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = _inteiro_env("SMTP_PORT", 587)
-SMTP_USE_TLS = os.getenv("SMTP_USE_TLS", "true").strip().lower() == "true"
+SMTP_USE_TLS = _booleano_env("SMTP_USE_TLS", True)
+EMAIL_ENVIO_AUTOMATICO = _booleano_env("EMAIL_ENVIO_AUTOMATICO", False)
