@@ -370,14 +370,10 @@ def executar(args):
 
 
 def main():
-    args = criar_parser().parse_args()
-
-    try:
-        with bloqueio_execucao():
-            return executar(args)
-    except ExecucaoJaAtiva as erro:
-        print(str(erro))
-        return 2
+    """A execução operacional única é feita pelo Gerente e pelo executor Supabase."""
+    print("Este repositório fornece contratos, regras e testes. Use a área Automação / Notas Fiscais do Gerente Flatter.")
+    print("A emissão real permanece bloqueada. Nenhum arquivo histórico foi alterado.")
+    return 0
 
 
 if __name__ == "__main__":

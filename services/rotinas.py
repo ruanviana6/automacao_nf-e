@@ -23,17 +23,8 @@ CHAVE_ULTIMO_RELATORIO = "ultimo_relatorio_quinzenal"
 
 
 def executar_limpeza():
-    arquivos_excluidos = limpar_arquivos_expirados()
-
-    for caminho in arquivos_excluidos:
-        marcar_arquivo_removido(caminho)
-
-    logs_excluidos = limpar_logs_expirados()
-
-    return {
-        "arquivos": arquivos_excluidos,
-        "logs": logs_excluidos
-    }
+    """Preserva documentos históricos; o novo fluxo não armazena nem remove XML/PDF."""
+    return {"arquivos": [], "logs": []}
 
 
 def gerar_relatorio_periodo(dias=RELATORIO_DIAS):

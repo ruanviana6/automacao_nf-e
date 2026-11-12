@@ -1,245 +1,85 @@
-# Automação NF-e
+# Automação NF-e Flatter
 
-Automação em Python criada para reduzir etapas manuais no processo de análise, emissão e controle de NF-e, preparada para integração com o GestãoClick e com outros módulos internos.
+Criei este projeto para reduzir etapas repetitivas na conferência de pedidos e
+notas. Ele agora participa da aplicação única
+[Gerente Flatter](https://estoqueinteligente-flatter.streamlit.app/), sem manter
+outro banco operacional ou outro serviço fiscal em Python.
 
-> **Status atual:** V1 funcional em modo de simulação.  
-> A estrutura completa está pronta; falta conectar os endpoints e campos da API real do GestãoClick.
+O desenvolvimento usa IA e Vibe Coding. As regras vêm da rotina do proprietário;
+a IA auxilia no código, na revisão e nos testes. Nenhuma simulação comprova
+homologação tributária ou funcionamento da API real.
 
-## O problema
+## Responsabilidade atual
 
-Antes de uma NF-e ser emitida, o pedido precisa respeitar regras operacionais. Além disso, é necessário manter histórico, identificar autorizações, organizar XML/PDF, evitar emissão duplicada e gerar relatórios.
+O Gerente fornece interface, Supabase Auth e permissões. O Supabase existente
+guarda solicitações, prévias, aprovações, identidade, resultados e auditoria.
+Uma Edge Function Deno sob demanda é o único executor operacional **DEMO**.
+Seu código fica em `supabase/functions/fiscal-demo` no repositório do Gerente,
+junto às migrações e aos testes de autorização.
 
-A proposta é automatizar esse fluxo sem substituir o GestãoClick. O ERP continua sendo a fonte principal das notas e dos dados; esta aplicação funciona como uma camada de automação e controle.
+Este repositório fornece regras, adaptadores futuros bloqueados, o contrato
+compartilhado `contratos/fiscal_demo_v1.json` e uma referência Python testável.
+`database/referencia_repository.py` usa SQLite apenas em testes descartáveis;
+nunca deve ser ligado como uma segunda persistência fiscal de produção.
 
-## Regras atuais
+O PR #1 original foi aproveitado: contas separadas em `api/duas_contas.py`,
+regras fiscais e bloqueios da integração real foram preservados e reforçados.
+O cliente genérico legado `api/gestaoclick.py` está desativado.
 
-- somente clientes do Ceará seguem neste fluxo;
-- **Em separação** pode gerar NF-e;
-- **Concretizada** pode gerar NF-e;
-- **Em andamento** exige autorização;
-- a autorização registra pessoa e horário;
-- pedidos com dados inválidos são bloqueados;
-- uma nota já concluída para o pedido impede nova emissão automática no mesmo ambiente.
+## Fluxo disponível na aplicação
 
-## Fluxo da V1
+1. Usuário autenticado consulta um número de pedido DEMO.
+2. Confere destinatário, UF, situação, produtos, quantidades e valores fictícios.
+3. Seleciona manualmente frete e tipo de contribuinte, sem valores padrão.
+4. Confere a prévia imutável e confirma explicitamente a simulação.
+5. Supabase registra uma solicitação única; Em andamento aguarda aprovação.
+6. Executor simula autorização, rejeição ou timeout e preserva o histórico.
 
-```text
-Pedido
-  ↓
-Validação dos dados
-  ↓
-Regra de UF e status
-  ↓
-Autorização, quando necessária
-  ↓
-Proteção contra duplicidade
-  ↓
-Criar nota
-  ↓
-Emitir
-  ↓
-Registrar histórico
-  ↓
-Salvar XML/PDF
-  ↓
-Registrar evento de integração
-  ↓
-Limpeza local após 45 dias
-  ↓
-Relatório quinzenal
-```
+Somente CE/Ceará/Ceara são elegíveis. Em separação e Concretizada podem seguir;
+Em andamento exige `fiscal.approve_pending`, identidade Auth e horário.
+Outras situações e qualquer nota existente impedem uma nova criação automática.
 
-Hoje esse fluxo pode ser executado de ponta a ponta usando o provedor simulado. O mesmo contrato será ligado ao GestãoClick real.
+Fretes disponíveis: 0, 1, 2, 3, 4 e 9. Contribuintes: 1, 2 e 9.
+Isento (2) e não contribuinte (9) são distintos. A falta de inscrição estadual
+não escolhe o código. Nenhum imposto, CFOP, CST/CSOSN ou NCM é inferido.
 
-## O que já está pronto
+A identidade combina organização, conta de origem, ID do pedido, destino e
+ambiente. O diário é gravado antes da criação. Timeout mantém bloqueio para
+conferência; POST nunca é repetido automaticamente. Nenhum XML/PDF é baixado,
+gerado ou salvo pelo fluxo operacional. Arquivos antigos são preservados.
 
-- regras de negócio dos pedidos;
-- validação de cliente, produtos e valores;
-- autorização de pedidos em andamento;
-- registro de quem autorizou e quem executou;
-- banco SQLite;
-- tabelas separadas para processamentos, notas, arquivos e eventos de integração;
-- proteção contra duplicidade;
-- proteção contra nova criação quando uma nota ficou em estado incerto após falha/timeout;
-- modo de simulação isolado do ambiente de produção;
-- geração simulada de NF-e;
-- salvamento de XML e PDF;
-- retenção automática de 45 dias;
-- exclusão manual segura;
-- logs com retenção de 45 dias;
-- relatório CSV;
-- envio de relatório por e-mail;
-- rotina quinzenal opcional;
-- fila local de eventos para integração futura;
-- reenvio de eventos que falharam;
-- testes automatizados no GitHub Actions;
-- cliente HTTP preparado para o GestãoClick;
-- configurações e credenciais via `.env`.
+## Limites da integração real
 
-## Estrutura
+**Nenhuma consulta ou emissão real está habilitada.**
+Atacado será sempre somente leitura. Somente o executor isolado poderá,
+futuramente e com nova autorização, criar e emitir NF-e diretamente no Varejo.
+Não poderá criar pedido, modificar cliente/produto/estoque, cancelar, corrigir,
+inutilizar ou excluir notas. Se a API exigir pedido no Varejo, a ativação ficará
+bloqueada. Não se inventam rotas, parâmetros ou códigos de status da API.
 
-```text
-automacao_nf-e/
-├── api/
-│   ├── gestaoclick.py
-│   ├── mock_gestaoclick.py
-│   └── provider.py
-├── config/
-│   └── settings.py
-├── database/
-│   ├── conexao.py
-│   ├── integracao_repository.py
-│   └── nfe_repository.py
-├── integrations/
-│   └── gerente_estoque.py
-├── services/
-│   ├── arquivos.py
-│   ├── email_service.py
-│   ├── eventos_integracao.py
-│   ├── notas.py
-│   ├── relatorio.py
-│   ├── rotinas.py
-│   ├── validacao.py
-│   └── vendas.py
-├── utils/
-│   ├── data_hora.py
-│   └── logger.py
-├── tests/
-├── data/
-├── logs/
-├── main.py
-├── INTEGRACAO_GERENTE_ESTOQUE.md
-└── SEGURANCA.md
-```
+Consulte [o checklist de ativação](docs/CHECKLIST_ATIVACAO_API_GESTAOCLICK.md)
+e [a comunicação com o Gerente](INTEGRACAO_GERENTE_ESTOQUE.md).
 
-## Instalação
+## Desenvolvimento e testes
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements-dev.txt
+python -m pytest -q
+pip-audit -r requirements.txt
 ```
 
-Para desenvolvimento e testes:
+Os testes usam pedidos fictícios, bloqueiam rede e isolam SQLite temporário.
+Cobrem concorrência, todos os estados existentes, timeout antes/depois da criação,
+escolhas manuais, ausência de downloads e bloqueio do cliente legado.
+Os testes de Auth/PostgREST, RLS e Edge Functions ficam no Gerente, pois são
+parte da mesma implantação. Consulte os respectivos GitHub Actions para as
+versões efetivamente executadas e os resultados.
 
-```bash
-pip install -r requirements-dev.txt
-```
+`python main.py` informa o endereço da aplicação única e encerra. Não inicia
+um segundo motor, downloads, limpeza, webhook ou rotina de e-mail.
+Módulos antigos continuam disponíveis para regressão e inspeção histórica;
+as instruções anteriores estão marcadas em `docs/historico/` e não são um
+procedimento de operação. Não execute limpeza de documentos antigos.
 
-Copie o modelo de configuração:
-
-```bash
-cp .env.example .env
-```
-
-Enquanto a API real não estiver configurada:
-
-```env
-MODO_SIMULACAO=true
-```
-
-## Executar
-
-Fluxo completo:
-
-```bash
-python main.py
-```
-
-Executar testes:
-
-```bash
-pytest
-```
-
-Listar XML/PDF locais:
-
-```bash
-python main.py --listar-arquivos
-```
-
-Forçar limpeza:
-
-```bash
-python main.py --limpar
-```
-
-Excluir um arquivo local específico:
-
-```bash
-python main.py --excluir-arquivo data/xml/nome_do_arquivo.xml
-```
-
-Gerar relatório:
-
-```bash
-python main.py --relatorio
-```
-
-Gerar e enviar relatório:
-
-```bash
-python main.py --enviar-relatorio
-```
-
-Reenviar eventos de integração pendentes:
-
-```bash
-python main.py --reenviar-eventos
-```
-
-## Retenção local
-
-XML, PDF e logs permanecem localmente por **45 dias**.
-
-A remoção local não cancela nem apaga a NF-e no GestãoClick.
-
-## Relatório quinzenal
-
-O envio automático fica desativado por padrão.
-
-Depois de configurar o e-mail no `.env`, pode ser ativado com:
-
-```env
-EMAIL_ENVIO_AUTOMATICO=true
-```
-
-## Integração real com o GestãoClick
-
-O arquivo `api/gestaoclick.py` já possui a base HTTP e o restante do sistema espera apenas estes métodos:
-
-- buscar pedidos pendentes;
-- criar nota;
-- emitir nota;
-- consultar nota;
-- baixar XML;
-- baixar PDF.
-
-O provedor simulado implementa exatamente esse contrato. Por isso a conexão real pode ser feita sem reescrever o restante da aplicação.
-
-## Pronto para integrar ao Gerente de Estoque
-
-A automação já possui uma camada de integração separada.
-
-Quando uma NF-e é concluída, um evento é salvo no SQLite. Se o Gerente de Estoque ainda estiver desligado, nada é perdido e a emissão continua normalmente.
-
-Quando o gerente estiver pronto, basta configurar:
-
-```env
-INTEGRACAO_GERENTE_ATIVA=true
-GERENTE_ESTOQUE_WEBHOOK_URL=
-GERENTE_ESTOQUE_WEBHOOK_SECRET=
-GERENTE_ESTOQUE_WEBHOOK_TOKEN=
-```
-
-O Gerente de Estoque poderá receber os eventos sem acessar o SQLite da automação e sem receber CPF/CNPJ, XML, PDF ou credenciais.
-
-Consulte `INTEGRACAO_GERENTE_ESTOQUE.md` para o contrato inicial.
-
-## Evolução futura
-
-Esse mesmo padrão permite integrar futuramente outros serviços, como compras, expedição, relatórios ou notificações, sem colocar todas as regras dentro do mesmo arquivo ou banco.
-
-## Segurança
-
-Antes de ativar a API real, consulte `SEGURANCA.md` e `ARQUITETURA_SEGURANCA.md`.
-
-Credenciais reais nunca devem ser enviadas para o GitHub.
+Segredos ficam fora do Git e do navegador. Não configure credenciais reais
+antes de concluir o checklist e receber autorização explícita.
