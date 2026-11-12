@@ -1,3 +1,5 @@
+> REGRA VIGENTE de 12/11/2026: API única, origem FLT Comércio, cadastro da NF-e na loja Flagship - Flatter, emissão exclusivamente manual no ERP. Menções anteriores a duas contas/APIs ou emissão automatizada estão superadas. Consulte README.md e docs/CHECKLIST_ATIVACAO_API_GESTAOCLICK.md.
+
 # Integração atual com o Gerente Flatter
 
 A comunicação operacional usa exclusivamente o Supabase existente. O Streamlit

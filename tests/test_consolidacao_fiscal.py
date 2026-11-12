@@ -59,7 +59,7 @@ def test_dois_funcionarios_nao_criam_duas_notas(referencia):
     with ThreadPoolExecutor(max_workers=2) as executor:
         resultados = list(executor.map(lambda _: processar_nota(pedido, provedor, opcoes_fiscais_manuais=ESCOLHAS), range(2)))
     assert len(tentativas) == 1
-    assert sum(r['status'] == 'simulada' for r in resultados) == 1
+    assert sum(r['status'] == 'cadastrada_demo' for r in resultados) == 1
 
 
 @pytest.mark.parametrize('estado', ['Em aberto', 'Aprovada', 'Reprovada', 'Denegada', 'Cancelada', 'Enviando', 'Corrigida', 'desconhecido'])

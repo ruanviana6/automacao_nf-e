@@ -1,66 +1,54 @@
-# Automação NF-e Flatter
+# Cadastro de NF-e Flatter
 
 Criei este projeto para reduzir etapas repetitivas na conferência de pedidos e
-notas. Ele agora participa da aplicação única
-[Gerente Flatter](https://estoqueinteligente-flatter.streamlit.app/), sem manter
-outro banco operacional ou outro serviço fiscal em Python.
+notas. Ele participa da aplicação única
+[Gerente Flatter](https://estoqueinteligente-flatter.streamlit.app/), sem outro
+banco operacional ou serviço fiscal Python independente.
 
-O desenvolvimento usa IA e Vibe Coding. As regras vêm da rotina do proprietário;
-a IA auxilia no código, na revisão e nos testes. Nenhuma simulação comprova
-homologação tributária ou funcionamento da API real.
+Uso IA e Vibe Coding no desenvolvimento. Eu defino as necessidades da rotina;
+a IA auxilia no código, na revisão e nos testes. Simulação não é homologação
+fiscal nem comprovação de funcionamento da API real.
 
-## Responsabilidade atual
+## Regra atual
 
-O Gerente fornece interface, Supabase Auth e permissões. O Supabase existente
-guarda solicitações, prévias, aprovações, identidade, resultados e auditoria.
-Uma Edge Function Deno sob demanda é o único executor operacional **DEMO**.
-Seu código fica em `supabase/functions/fiscal-demo` no repositório do Gerente,
-junto às migrações e aos testes de autorização.
+Uma API GestãoClick, com lojas distintas. A origem é FLT Comércio, nosso atacado;
+a Flagship - Flatter, varejo, recebe somente o cadastro da NF-e. A emissão é
+manual no GestãoClick. A automação nunca emite e nunca cria venda/pedido no
+varejo, edita cadastros/saldos, cancela, corrige, inutiliza ou exclui notas.
 
-Este repositório fornece regras, adaptadores futuros bloqueados, o contrato
-compartilhado `contratos/fiscal_demo_v1.json` e uma referência Python testável.
-`database/referencia_repository.py` usa SQLite apenas em testes descartáveis;
-nunca deve ser ligado como uma segunda persistência fiscal de produção.
+A regra informada em 12/11/2026 substitui o modelo anterior de duas APIs e a
+ideia de emissão automática. api/duas_contas.py permanece apenas para rejeitar
+uso legado. api/provider.py utiliza api/lojas.py, com uma credencial e dois IDs
+de lojas explícitos. Nome, posição na tela e CNPJ não são usados como IDs da API.
 
-O PR #1 original foi aproveitado: contas separadas em `api/duas_contas.py`,
-regras fiscais e bloqueios da integração real foram preservados e reforçados.
-O cliente genérico legado `api/gestaoclick.py` está desativado.
+## Aplicação e responsabilidades
 
-## Fluxo disponível na aplicação
+O Gerente oferece a aba Automação / Notas Fiscais, autenticação e permissões.
+Supabase centraliza prévias, escolhas, solicitante/aprovador, unicidade, estados
+e auditoria. A única Edge Function operacional é DEMO e fica no repositório do
+Gerente. Este projeto fornece regras, adaptadores bloqueados e contratos de
+referência. SQLite existe somente em testes descartáveis, sem segunda produção.
 
-1. Usuário autenticado consulta um número de pedido DEMO.
-2. Confere destinatário, UF, situação, produtos, quantidades e valores fictícios.
-3. Seleciona manualmente frete e tipo de contribuinte, sem valores padrão.
-4. Confere a prévia imutável e confirma explicitamente a simulação.
-5. Supabase registra uma solicitação única; Em andamento aguarda aprovação.
-6. Executor simula autorização, rejeição ou timeout e preserva o histórico.
+O funcionário confere o pedido, escolhe frete e contribuinte manualmente e
+confirma o cadastro. CE/Ceará/Ceara são aceitos. Em separação/Concretizada são
+elegíveis; Em andamento exige aprovação Auth identificada. Nota existente e
+resultado incerto bloqueiam novo cadastro até conferência/reconciliação.
 
-Somente CE/Ceará/Ceara são elegíveis. Em separação e Concretizada podem seguir;
-Em andamento exige `fiscal.approve_pending`, identidade Auth e horário.
-Outras situações e qualquer nota existente impedem uma nova criação automática.
+Frete: 0, 1, 2, 3, 4 e 9, sem padrão. Contribuinte: 1, 2 e 9, sem inferir pela
+falta de IE. Isento (2) e não contribuinte (9) são diferentes. CFOP, NCM,
+CST/CSOSN, impostos, natureza e demais campos reais dependem de validação.
 
-Fretes disponíveis: 0, 1, 2, 3, 4 e 9. Contribuintes: 1, 2 e 9.
-Isento (2) e não contribuinte (9) são distintos. A falta de inscrição estadual
-não escolhe o código. Nenhum imposto, CFOP, CST/CSOSN ou NCM é inferido.
+O diário precede cadastro. A identidade inclui organização, conexão, loja de
+origem, ID estável do pedido, loja de destino e ambiente. Nenhum POST recebe
+retry automático. O resultado DEMO é cadastrada_demo, sem chave, número de
+nota autorizada ou data de emissão. Não há download/salvamento automático de
+XML/PDF nem limpeza histórica. Arquivos antigos são preservados.
 
-A identidade combina organização, conta de origem, ID do pedido, destino e
-ambiente. O diário é gravado antes da criação. Timeout mantém bloqueio para
-conferência; POST nunca é repetido automaticamente. Nenhum XML/PDF é baixado,
-gerado ou salvo pelo fluxo operacional. Arquivos antigos são preservados.
+O contrato atual é contratos/fiscal_demo_v2.json, idêntico ao contrato v2 do
+Gerente. A versão anterior é histórica. services/notas.py é uma referência
+simulada e não chama emitir_nota, nem em testes. Não é um segundo executor.
 
-## Limites da integração real
-
-**Nenhuma consulta ou emissão real está habilitada.**
-Atacado será sempre somente leitura. Somente o executor isolado poderá,
-futuramente e com nova autorização, criar e emitir NF-e diretamente no Varejo.
-Não poderá criar pedido, modificar cliente/produto/estoque, cancelar, corrigir,
-inutilizar ou excluir notas. Se a API exigir pedido no Varejo, a ativação ficará
-bloqueada. Não se inventam rotas, parâmetros ou códigos de status da API.
-
-Consulte [o checklist de ativação](docs/CHECKLIST_ATIVACAO_API_GESTAOCLICK.md)
-e [a comunicação com o Gerente](INTEGRACAO_GERENTE_ESTOQUE.md).
-
-## Desenvolvimento e testes
+## Desenvolvimento
 
 ```bash
 python -m pip install -r requirements-dev.txt
@@ -68,18 +56,23 @@ python -m pytest -q
 pip-audit -r requirements.txt
 ```
 
-Os testes usam pedidos fictícios, bloqueiam rede e isolam SQLite temporário.
-Cobrem concorrência, todos os estados existentes, timeout antes/depois da criação,
-escolhas manuais, ausência de downloads e bloqueio do cliente legado.
-Os testes de Auth/PostgREST, RLS e Edge Functions ficam no Gerente, pois são
-parte da mesma implantação. Consulte os respectivos GitHub Actions para as
-versões efetivamente executadas e os resultados.
+Os testes usam dados fictícios, bloqueiam rede e isolam SQLite temporário.
+Cobrem unicidade, concorrência, escolhas, timeout, preservação de IDs, ausência
+de documentos e proibição de emissão, inclusive por flags/métodos antigos.
+Auth/PostgREST/RLS e o executor Edge são testados no repositório do Gerente.
 
-`python main.py` informa o endereço da aplicação única e encerra. Não inicia
-um segundo motor, downloads, limpeza, webhook ou rotina de e-mail.
-Módulos antigos continuam disponíveis para regressão e inspeção histórica;
-as instruções anteriores estão marcadas em `docs/historico/` e não são um
-procedimento de operação. Não execute limpeza de documentos antigos.
+python main.py apenas informa o endereço da aplicação única e encerra.
+Componentes antigos de arquivos, limpeza e webhook ficam fora da operação.
+Documentos históricos estão marcados em docs/historico e não são instruções
+vigentes. Nenhum arquivo antigo é apagado pelo fluxo.
 
-Segredos ficam fora do Git e do navegador. Não configure credenciais reais
-antes de concluir o checklist e receber autorização explícita.
+## API real
+
+Ainda está bloqueada por construção. Precisamos do OpenAPI único, IDs de lojas,
+credencial protegida e mapeamento fiscal, seguidos de autorização de homologação.
+O cadastro direto precisa ocorrer sem venda/pedido e sem envio/emissão automática.
+Se o contrato não oferecer isso, a integração não será ativada.
+
+Consulte [o checklist](docs/CHECKLIST_ATIVACAO_API_GESTAOCLICK.md).
+Não envie credenciais no chat, no navegador ou no Git. Não há opção para habilitar
+emissão automática. Ela permanece manual no ERP.

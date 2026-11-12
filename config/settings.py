@@ -60,7 +60,7 @@ GESTAOCLICK_READ_TIMEOUT = _float_env(
     "GESTAOCLICK_READ_TIMEOUT", _float_env("GESTAOCLICK_TIMEOUT", 30.0)
 )
 
-# Credenciais diferentes e explícitas para cada conta. Nunca logar segredos.
+# Legado desativado. Estes nomes não são usados pelo provedor vigente.
 GESTAOCLICK_ATACADO_BASE_URL = os.getenv("GESTAOCLICK_ATACADO_BASE_URL", "").rstrip("/")
 GESTAOCLICK_ATACADO_ACCESS_TOKEN = os.getenv("GESTAOCLICK_ATACADO_ACCESS_TOKEN", "")
 GESTAOCLICK_ATACADO_SECRET_ACCESS = os.getenv("GESTAOCLICK_ATACADO_SECRET_ACCESS", "")
@@ -68,7 +68,15 @@ GESTAOCLICK_VAREJO_BASE_URL = os.getenv("GESTAOCLICK_VAREJO_BASE_URL", "").rstri
 GESTAOCLICK_VAREJO_ACCESS_TOKEN = os.getenv("GESTAOCLICK_VAREJO_ACCESS_TOKEN", "")
 GESTAOCLICK_VAREJO_SECRET_ACCESS = os.getenv("GESTAOCLICK_VAREJO_SECRET_ACCESS", "")
 # Mesmo true não ativa emissão sem os endpoints e regras fiscais confirmados.
-NFE_EMISSAO_REAL_HABILITADA = _booleano_env("NFE_EMISSAO_REAL_HABILITADA", False)
+NFE_EMISSAO_REAL_HABILITADA = False  # Emissão é sempre manual no GestãoClick.
+
+# Conexão única e lojas distintas. Não utilizar as duas credenciais legadas.
+GESTAOCLICK_API_BASE_URL = os.getenv('GESTAOCLICK_API_BASE_URL', '').rstrip('/')
+GESTAOCLICK_API_ACCESS_TOKEN = os.getenv('GESTAOCLICK_API_ACCESS_TOKEN', '')
+GESTAOCLICK_API_SECRET_ACCESS = os.getenv('GESTAOCLICK_API_SECRET_ACCESS', '')
+GESTAOCLICK_LOJA_ATACADO_ID = os.getenv('GESTAOCLICK_LOJA_ATACADO_ID', '').strip()
+GESTAOCLICK_LOJA_VAREJO_ID = os.getenv('GESTAOCLICK_LOJA_VAREJO_ID', '').strip()
+NFE_CADASTRO_REAL_HABILITADO = _booleano_env('NFE_CADASTRO_REAL_HABILITADO', False)
 
 # E-mail
 EMAIL_USUARIO = os.getenv("EMAIL_USUARIO", "")

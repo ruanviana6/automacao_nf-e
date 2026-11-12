@@ -1,8 +1,6 @@
-"""Roteador fechado de responsabilidades entre as DUAS contas GestãoClick.
+"""Compatibilidade histórica do modelo de duas APIs, desativado por regra do usuário.
 
-A preparação abaixo não acessa a API real. Endpoints e campos fiscais precisam
-ser confirmados no OpenAPI autorizado ANTES de implementar qualquer operação.
-O Gerente de Estoque continua integralmente somente leitura.
+O fluxo vigente usa api.lojas: conexão única, cadastro por loja, sem emissão.
 """
 from __future__ import annotations
 
@@ -13,8 +11,7 @@ from config import settings
 from services.regras_fiscais import validar_escolhas_manuais
 
 
-class IntegracaoFiscalPendente(RuntimeError):
-    """Bloqueio seguro enquanto contrato fiscal e autorização não são validados."""
+from api.lojas import IntegracaoFiscalPendente
 
 
 def _host_oficial(hostname: str | None) -> bool:
@@ -95,10 +92,8 @@ class EmissorVarejo:
 
     @staticmethod
     def _exigir_habilitacao():
-        if not settings.NFE_EMISSAO_REAL_HABILITADA:
-            raise IntegracaoFiscalPendente(
-                "Emissão real desabilitada. Apenas simulação até validação fiscal."
-            )
+        """O modelo anterior nunca pode ser reativado por configuração antiga."""
+        raise IntegracaoFiscalPendente('Modelo de duas APIs descontinuado. Cadastro por loja apenas; emissão manual.')
 
     def criar_nota(self, dados):
         self._exigir_habilitacao()
@@ -137,8 +132,8 @@ class ProvedorDuasContas:
     ambiente = "producao"
 
     def __init__(self, leitor=None, emissor=None):
-        self._leitor = leitor if leitor is not None else LeitorAtacado()
-        self._emissor = emissor if emissor is not None else EmissorVarejo()
+        """Preserva o nome histórico sem permitir outro roteador operacional."""
+        raise IntegracaoFiscalPendente('Use a API única com lojas. O roteador legado está desativado.')
 
     def buscar_pedidos_pendentes(self):
         return self._leitor.buscar_pedidos_pendentes()
@@ -152,7 +147,7 @@ class ProvedorDuasContas:
         return self._emissor.criar_nota(preparados)
 
     def emitir_nota(self, id_externo):
-        return self._emissor.emitir_nota(id_externo)
+        raise IntegracaoFiscalPendente('A emissão é exclusivamente manual no GestãoClick.')
 
     def consultar_nota(self, id_externo):
         return self._emissor.consultar_nota(id_externo)

@@ -46,7 +46,9 @@ def test_fluxo_simulado_salva_nota_e_impede_duplicidade(tmp_path, monkeypatch):
         "TESTE", opcoes_fiscais_manuais={"modalidade_frete": 1, "tipo_contribuinte": 9}
     )
 
-    assert resultado["status"] == "simulada"
+    assert resultado["status"] == "cadastrada_demo"
+    assert resultado['emissao_automatica'] is False
+    assert resultado['chave_nfe'] is None
     assert resultado["caminho_xml"] is None
     assert not (tmp_path / "xml").exists()
     assert resultado["caminho_pdf"] is None
@@ -61,19 +63,18 @@ def test_fluxo_simulado_salva_nota_e_impede_duplicidade(tmp_path, monkeypatch):
     assert repeticao["status"] == "duplicada"
 
 
-def test_id_criado_fica_salvo_quando_emissao_falha(tmp_path, monkeypatch):
+def test_id_criado_fica_salvo_se_confirmacao_local_falha(tmp_path, monkeypatch):
     preparar_ambiente(
         tmp_path,
         monkeypatch
     )
 
-    class ProvedorComFalha(mock_api.MockGestaoClickAPI):
-        def emitir_nota(self, id_externo):
-            raise TimeoutError(
-                "Falha simulada após criação."
-            )
-
-    provedor = ProvedorComFalha()
+    import services.notas
+    def falhar(*_args, **_kwargs):
+        """Simula perda da confirmação local após cadastro, nunca uma emissão."""
+        raise TimeoutError('Falha simulada após cadastro.')
+    monkeypatch.setattr(services.notas, 'atualizar_nota', falhar)
+    provedor = mock_api.MockGestaoClickAPI()
     pedido = provedor.buscar_pedidos_pendentes()[0]
 
     with pytest.raises(TimeoutError):
