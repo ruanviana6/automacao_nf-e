@@ -90,19 +90,8 @@ class MockGestaoClickAPI:
         }
 
     def emitir_nota(self, id_externo):
-        nota = self.notas[id_externo]
-        numero_pedido = nota["numero_pedido"]
-
-        resultado = {
-            "id_externo": id_externo,
-            "numero_nfe": f"SIM{numero_pedido}",
-            "chave_nfe": f"SIMULADA{numero_pedido:08d}",
-            "status_nfe": "simulada",
-            "data_emissao": agora_utc().isoformat(timespec="seconds")
-        }
-
-        nota.update(resultado)
-        return resultado
+        """Nem a referência DEMO simula emissão automática após a nova regra."""
+        raise RuntimeError('Emissão automática proibida. Emita manualmente no GestãoClick.')
 
     def consultar_nota(self, id_externo):
         return self.notas[id_externo].copy()

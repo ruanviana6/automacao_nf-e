@@ -1,6 +1,6 @@
 """Referência simulada; a execução operacional única fica no Supabase."""
 
-from api.duas_contas import IntegracaoFiscalPendente
+from api.lojas import IntegracaoFiscalPendente
 from database.nfe_repository import atualizar_nota, registrar_nota, buscar_legado_sem_escopo
 from database.referencia_repository import atualizar, reservar
 from services.regras_fiscais import validar_escolhas_manuais
@@ -21,7 +21,7 @@ def preparar_dados_nf(venda, opcoes_fiscais_manuais=None):
 
 def processar_nota(venda, provedor, usuario_gerador='REFERENCIA_DEMO', *, opcoes_fiscais_manuais=None,
                    autorizacao_em_andamento=False, organizacao='ORGANIZACAO_DEMO',
-                   origem='DEMO-ATACADO', destino='DEMO-VAREJO'):
+                   origem='DEMO-FLT-COMERCIO', destino='DEMO-FLAGSHIP-FLATTER'):
     """Executa só dublês de teste; nunca baixa arquivos ou usa credencial real.
 
     O diário é reservado antes da criação. Timeout, rejeição e estado desconhecido
@@ -41,7 +41,7 @@ def processar_nota(venda, provedor, usuario_gerador='REFERENCIA_DEMO', *, opcoes
                 'nota_id': legado['id'], 'id_externo': legado['id_externo']}
     registro, novo = reservar(identidade, dados['opcoes_fiscais_manuais'])
     if not novo:
-        return {'status': 'duplicada' if registro['estado'] in ('simulada', 'Aprovada', 'aprovada') else 'pendente_consulta',
+        return {'status': 'duplicada' if registro['estado'] in ('cadastrada_demo', 'simulada', 'Aprovada', 'aprovada') else 'pendente_consulta',
                 'numero_pedido': venda['numero_pedido'], 'solicitacao_id': registro['id'],
                 'id_externo': registro['id_externo']}
     try:
@@ -55,13 +55,16 @@ def processar_nota(venda, provedor, usuario_gerador='REFERENCIA_DEMO', *, opcoes
             'status_nfe': criada.get('status_nfe', 'criada'), 'usuario_gerador': usuario_gerador,
             'data_emissao': criada.get('data_emissao'), 'origem': getattr(provedor, 'origem', 'referencia_demo'),
             'ambiente': 'simulacao', 'solicitacao_referencia': registro['id']})
-        emissao = provedor.emitir_nota(id_externo)
-        atualizar_nota(nota_id, emissao)
-        atualizar(registro['id'], emissao['status_nfe'], id_externo)
+        # Cadastro e emissão são etapas distintas. A automação encerra aqui,
+        # mantendo a emissão exclusivamente manual no ERP, inclusive na DEMO.
+        cadastro = {'status_nfe': 'cadastrada_demo', 'numero_nfe': None,
+                    'chave_nfe': None, 'data_emissao': None}
+        atualizar_nota(nota_id, cadastro)
+        atualizar(registro['id'], 'cadastrada_demo', id_externo)
     except Exception:
         # Mesmo erro de resposta ou persistência após a chamada é incerto.
         atualizar(registro['id'], 'needs_reconciliation')
         raise
-    return {'status': emissao['status_nfe'], 'nota_id': nota_id, 'solicitacao_id': registro['id'],
-            'numero_pedido': venda['numero_pedido'], 'numero_nfe': emissao.get('numero_nfe'),
-            'chave_nfe': emissao.get('chave_nfe'), 'caminho_xml': None, 'caminho_pdf': None}
+    return {'status': 'cadastrada_demo', 'nota_id': nota_id, 'solicitacao_id': registro['id'],
+            'numero_pedido': venda['numero_pedido'], 'numero_nfe': None,
+            'chave_nfe': None, 'emissao_automatica': False, 'caminho_xml': None, 'caminho_pdf': None}

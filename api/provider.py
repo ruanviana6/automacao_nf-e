@@ -1,9 +1,5 @@
-"""Seleciona simulação ou fluxo Atacado (GET) + Varejo (NF-e).
-
-A implementação real está deliberadamente BLOQUEADA até conferir o contrato
-das duas APIs. Nunca usa a mesma credencial para ler Atacado e emitir no Varejo.
-"""
-from api.duas_contas import ProvedorDuasContas
+"""Seleciona DEMO ou conexão única com duas lojas; cadastro real ainda bloqueado."""
+from api.lojas import ProvedorPorLojas
 from api.mock_gestaoclick import MockGestaoClickAPI
 from config.settings import MODO_SIMULACAO
 
@@ -11,4 +7,4 @@ from config.settings import MODO_SIMULACAO
 def obter_provedor():
     if MODO_SIMULACAO:
         return MockGestaoClickAPI()
-    return ProvedorDuasContas()
+    return ProvedorPorLojas()

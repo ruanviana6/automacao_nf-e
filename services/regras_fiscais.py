@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Mapping
 
 
-CONTRATO = json.loads((Path(__file__).resolve().parents[1] / 'contratos/fiscal_demo_v1.json').read_text())
+CONTRATO = json.loads((Path(__file__).resolve().parents[1] / 'contratos/fiscal_demo_v2.json').read_text())
 MODALIDADES_FRETE = {int(k): v for k, v in CONTRATO['modalidades_frete'].items()}
 TIPOS_CONTRIBUINTE = {int(k): v for k, v in CONTRATO['tipos_contribuinte'].items()}
 
