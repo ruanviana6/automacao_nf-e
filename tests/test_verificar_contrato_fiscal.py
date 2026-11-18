@@ -77,3 +77,15 @@ def test_cli_rejeita_yaml_e_erro_sem_exibir_conteudo(tmp_path, capsys):
     p.write_text('segredo: nao-imprima', encoding='utf-8')
     assert main([str(p)]) == 2
     assert 'nao-imprima' not in capsys.readouterr().err
+
+
+def test_sem_openapi_apresenta_referencia_publica_e_mantem_bloqueio(capsys):
+    from scripts.verificar_contrato_fiscal import main
+    assert main([]) == 0
+    resultado = json.loads(capsys.readouterr().out)
+    assert resultado['status'] == 'BLOQUEADO'
+    assert resultado['cadastro_previsto'] == 'POST /notas_fiscais_produtos'
+    assert resultado['familia_nfe'] == 'notas_fiscais_produtos'
+    assert all(not rota.startswith('POST') for rota in resultado['consultas_previstas'])
+    assert 'envio_automatico' in ' '.join(resultado['observacoes'])
+    assert 'emitir' not in resultado['cadastro_previsto']
