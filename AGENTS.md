@@ -7,7 +7,7 @@ de destino, sem criar venda/pedido. A emissão é SEMPRE MANUAL no ERP. Nenhuma
 flag pode habilitar emissão automática. O cliente analítico continua GET-only.
 Manter a aba Automação / Notas Fiscais com frete e contribuinte manuais, prévia,
 confirmação de cadastro e histórico. Preservar login após F5/reabertura.
-IDs reais de lojas dependem do OpenAPI; não inferir por nome, posição ou CNPJ.
+IDs reais de lojas dependem da consulta oficial autorizada da conta; não inferir por nome, posição ou CNPJ.
 Não versionar dados empresariais da imagem fornecida. Credencial única protegida.
 Continuam bloqueados integração real, pedidos/vendas no varejo, alteração de
 cadastros/saldos, cancelamento, exclusão, inutilização e qualquer emissão.
