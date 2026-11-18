@@ -100,6 +100,29 @@ def analisar_contrato(documento: Any) -> dict[str, Any]:
     }
 
 
+def referencia_publica() -> dict[str, Any]:
+    """Referência oficial verificável sem OpenAPI e SEM consultar a conta."""
+    return {
+        'status': 'BLOQUEADO',
+        'tipo': 'referencia_publica_estatica_sem_chamadas',
+        'familia_nfe': 'notas_fiscais_produtos',
+        'consultas_previstas': ['GET /lojas', 'GET /vendas', 'GET /notas_fiscais_produtos'],
+        'cadastro_previsto': 'POST /notas_fiscais_produtos',
+        'observacoes': [
+            'A rota é documentada publicamente; disponibilidade e permissões da conta não foram conferidas.',
+            'Cadastro e emissão são operações distintas. Nenhum POST é executado por este script.',
+            'NUNCA invocar /emitir nem /cancelar. Emissão permanece manual no ERP.',
+            'O campo envio_automatico pode enfileirar envio fiscal após o cadastro; não presumir valor padrão.',
+            'Consultar duplicidade de nota e validar IDs de lojas, pedido, destinatário, itens e dados tributários.',
+            'O cadastro real permanece BLOQUEADO até teste fiscal autorizado.',
+        ],
+        'fontes': [
+            'https://central.gestaoclick.com.br/hc/pt-br/articles/1871-api-o-que-da-e-o-que-nao-da-para-fazer-e-os-enderecos-que-confundem',
+            'https://central.gestaoclick.com.br/hc/pt-br/articles/1874-emitir-e-cancelar-nota-fiscal-pela-api-linha-fis',
+        ],
+    }
+
+
 def ler_openapi(caminho: Path) -> dict[str, Any]:
     if caminho.suffix.lower() != '.json':
         raise ValueError('Exporte o OpenAPI como JSON. YAML não é analisado por esta ferramenta.')
@@ -111,10 +134,10 @@ def ler_openapi(caminho: Path) -> dict[str, Any]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('arquivo', type=Path, help='Arquivo OpenAPI 3 JSON local, sem credenciais.')
+    parser.add_argument('arquivo', nargs='?', type=Path, help='OpenAPI 3 JSON opcional; sem arquivo mostra referência pública.')
     args = parser.parse_args(argv)
     try:
-        resultado = analisar_contrato(ler_openapi(args.arquivo))
+        resultado = analisar_contrato(ler_openapi(args.arquivo)) if args.arquivo is not None else referencia_publica()
     except (ValueError, OSError, UnicodeError, json.JSONDecodeError):
         # Não ecoar mensagem de erro: parser pode incluir material do arquivo.
         print('Falha na leitura/validação do contrato local. Verifique JSON e OpenAPI 3.', file=sys.stderr)
