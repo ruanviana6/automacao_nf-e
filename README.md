@@ -68,11 +68,11 @@ vigentes. Nenhum arquivo antigo é apagado pelo fluxo.
 
 ## API real
 
-Ainda está bloqueada por construção. Precisamos do OpenAPI único, IDs de lojas,
+Ainda está bloqueada por construção. Não exigimos arquivo OpenAPI: a referência oficial pública e as leituras autorizadas da conta permitem avançar na preparação. Precisamos de IDs de lojas,
 credencial protegida e mapeamento fiscal, seguidos de autorização de homologação.
 O cadastro direto precisa ocorrer sem venda/pedido e sem envio/emissão automática.
 Se o contrato não oferecer isso, a integração não será ativada.
 
-Consulte [o checklist](docs/CHECKLIST_ATIVACAO_API_GESTAOCLICK.md).
+Consulte [o checklist](docs/CHECKLIST_ATIVACAO_API_GESTAOCLICK.md) e [o caminho sem OpenAPI](docs/VERIFICACAO_OFFLINE_OPENAPI_FISCAL.md).
 Não envie credenciais no chat, no navegador ou no Git. Não há opção para habilitar
 emissão automática. Ela permanece manual no ERP.

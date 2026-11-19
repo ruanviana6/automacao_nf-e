@@ -22,7 +22,7 @@ Código preparado não equivale a cadastro real homologado.
 
 ## O proprietário precisa fornecer
 
-1. **OpenAPI autorizado da API única**, com versão/data, base URL e limites.
+1. **Documentação pública oficial da API** e as evidências de leitura já obtidas na conta, com base URL e limites aplicáveis. O arquivo OpenAPI **não é requisito**; qualquer informação não comprovada deve continuar bloqueada.
 2. **IDs reais das lojas** FLT Comércio e Flagship - Flatter, confirmados por
    listagem oficial. Não inferir por nome, ordem na tela ou CNPJ da imagem.
 3. **Uma credencial da API**, em ambiente protegido, com o menor privilégio
@@ -59,7 +59,7 @@ Se a API não oferecer esse comportamento, registrar o impedimento e não criar
 uma venda/pedido nem emitir como alternativa.
 
 Os códigos internos de frete e contribuinte precisam de adaptador para os campos
-reais do OpenAPI. Não copiar nomes XML como parâmetros presumidos. Falta de IE
+reais da API, confirmados pela documentação disponível e pela validação autorizada. Não copiar nomes XML como parâmetros presumidos. Falta de IE
 não determina isento ou não contribuinte. Informação fiscal essencial ausente
 bloqueia cadastro real. Não inventar números de NF-e, chave ou protocolo.
 
